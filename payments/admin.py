@@ -5,6 +5,8 @@ from django.utils.html import format_html
 from django.contrib.admin import SimpleListFilter
 from django.db.models import F, Q
 from django.utils import timezone
+from django.shortcuts import render, redirect
+from django.urls import path
 from datetime import timedelta
 import csv
 from .models import Payment
@@ -122,7 +124,7 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
     )
     
     # Register the actions
-    actions = ['approve_payments', 'unapprove_payments', 'export_payments', 'export_detailed']
+    actions = ['approve_payments', 'reject_payments', 'unapprove_payments', 'export_payments', 'export_detailed']
     
     def overdue_badge(self, obj):
         """Display overdue status."""
@@ -242,7 +244,7 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
         updated = queryset.update(approved=True)
         self.message_user(
             request, 
-            f"Successfully approved {updated} payments.", 
+            f"✓ Approved {updated} payment(s) and sent approval emails to students.", 
             messages.SUCCESS
         )
 
@@ -254,6 +256,41 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
             f"Successfully marked {updated} payments as pending.", 
             messages.WARNING
         )
+    
+    @admin.action(description="❌ Reject selected payments (with reason)")
+    def reject_payments(self, request, queryset):
+        """Reject selected payments with a reason. Opens intermediate page for rejection reason."""
+        # If confirmation form is submitted
+        if request.method == 'POST' and '_confirm_rejection' in request.POST:
+            rejection_reason = request.POST.get('rejection_reason', 'Payment receipt did not meet verification requirements.')
+            
+            if not rejection_reason.strip():
+                self.message_user(
+                    request, 
+                    "Please provide a rejection reason.", 
+                    messages.ERROR
+                )
+            else:
+                # Update all selected payments with rejection reason
+                updated = 0
+                for payment in queryset:
+                    payment.rejection_reason = rejection_reason
+                    payment.save()  # Signal will send rejection email
+                    updated += 1
+                
+                self.message_user(
+                    request, 
+                    f"✓ Rejected {updated} payment(s) and sent rejection emails to students.", 
+                    messages.SUCCESS
+                )
+                return redirect(request.get_full_path())
+        
+        # Show intermediate page for rejection reason input
+        return render(request, 'admin/payment_rejection_form.html', {
+            'payments': queryset,
+            'opts': self.model._meta,
+            'site_header': admin.site.site_header,
+        })
     
     @admin.action(description="📥 Export Payments to CSV")
     def export_payments(self, request, queryset):

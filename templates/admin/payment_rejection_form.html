@@ -1,0 +1,102 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Reject Payments - {{ site_header }}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>Reject Payments</h1>
+    
+    <div class="module aligned">
+        <div class="submit-row">
+            <p class="help">
+                You are about to reject the following <strong>{{ payments.count }}</strong> payment(s).
+                Students will be notified via email with the rejection reason you provide below.
+            </p>
+        </div>
+    </div>
+
+    <div class="module">
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        <strong>{{ payment.enrollment.student.get_full_name|default:payment.enrollment.student.username }}</strong>
+                    </td>
+                    <td>{{ payment.enrollment.course.title }}</td>
+                    <td>{{ payment.enrollment.student.email }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <form method="post" class="module aligned">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div>
+                <label for="id_rejection_reason">Rejection Reason:</label>
+                <p class="help">
+                    This reason will be sent to the student in the rejection email.
+                </p>
+                <textarea 
+                    name="rejection_reason" 
+                    id="id_rejection_reason" 
+                    rows="5" 
+                    style="width: 100%; max-width: 600px;"
+                    placeholder="e.g., Receipt is unclear or illegible. Please resubmit with a clearer image."
+                    required
+                ></textarea>
+            </div>
+        </div>
+
+        <div class="submit-row">
+            <a href="{{ request.referrer }}" class="button">Cancel</a>
+            <button type="submit" name="_confirm_rejection" class="button" style="background-color: #dc3545; color: white;">
+                Reject {{ payments.count }} Payment(s)
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .submit-row {
+        margin: 20px 0;
+    }
+    
+    .form-row {
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+    
+    textarea {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    
+    label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .help {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
