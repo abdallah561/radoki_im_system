@@ -33,12 +33,16 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list(
+    'ALLOWED_HOSTS',
+    default=['localhost', '127.0.0.1', 'radoki-im-system.onrender.com']
+)
 
 # CSRF trusted origins for development and production
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
     'http://127.0.0.1:8000',
     'http://localhost:8000',
+    'https://radoki-im-system.onrender.com',
     'https://*.ngrok-free.dev',
     'https://*.ngrok.app'
 ])
