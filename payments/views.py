@@ -6,7 +6,9 @@ from courses.models import Enrollment
 from .models import Payment
 from .forms import PaymentForm
 from django.core.paginator import Paginator
-from .utils import send_payment_rejection_email
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _page_window(page_obj, on_each_side=2, on_ends=1):
@@ -78,11 +80,11 @@ def review_receipts(request):
     # Filter by status
     status_filter = request.GET.get('status', '')
     if status_filter == 'pending':
-        payments = payments.filter(approved=False, rejected=False)
+        payments = payments.filter(approved=False, rejection_reason__isnull=True)
     elif status_filter == 'approved':
         payments = payments.filter(approved=True)
     elif status_filter == 'rejected':
-        payments = payments.filter(rejected=True)
+        payments = payments.filter(rejection_reason__isnull=False)
 
     # Pagination
     paginator = Paginator(payments, 5)
@@ -92,8 +94,8 @@ def review_receipts(request):
     # Calculate statistics (always from full unfiltered set)
     all_payments = Payment.objects.filter(enrollment__course__instructor=request.user)
     approved_count  = all_payments.filter(approved=True).count()
-    rejected_count  = all_payments.filter(rejected=True).count()
-    pending_count   = all_payments.filter(approved=False, rejected=False).count()
+    rejected_count  = all_payments.filter(rejection_reason__isnull=False).count()
+    pending_count   = all_payments.filter(approved=False, rejection_reason__isnull=True).count()
     total_count     = all_payments.count()
     approval_percentage = int((approved_count / total_count * 100)) if total_count > 0 else 0
     filtered_count  = payments.count()
@@ -116,45 +118,62 @@ def review_receipts(request):
 
 @login_required
 def approve_receipt(request, payment_id):
-    """Approve a payment receipt and send approval email."""
+    """Approve a payment receipt and send approval email via signal."""
     payment = get_object_or_404(Payment, id=payment_id, enrollment__course__instructor=request.user)
 
-    payment.approved = True
-    payment.rejected = False          # Clear any previous rejection
-    payment.rejection_reason = None
-    payment.save()  # This will trigger the signal to send approval email
+    try:
+        # Only save if not already approved
+        if not payment.approved:
+            payment.approved = True
+            payment.rejection_reason = None  # Clear any previous rejection
+            payment.save()  # This will trigger the signal to send approval email
+            
+            logger.info(f"Payment {payment_id} approved by instructor {request.user.username}")
+        
+        # Grant course access
+        payment.enrollment.approved = True
+        payment.enrollment.save()
 
-    # Grant course access
-    payment.enrollment.approved = True
-    payment.enrollment.save()
-
-    messages.success(
-        request,
-        f"✓ Payment approved. {payment.enrollment.student.username} now has access to {payment.enrollment.course.title}."
-    )
+        messages.success(
+            request,
+            f"✓ Payment approved. Approval email sent to {payment.enrollment.student.get_full_name() or payment.enrollment.student.username}. They now have access to {payment.enrollment.course.title}."
+        )
+    except Exception as e:
+        logger.error(f"Error approving payment {payment_id}: {str(e)}", exc_info=True)
+        messages.error(request, f"Error approving payment: {str(e)}")
+    
     return redirect('payments:review_receipts')
 
 @login_required
 def reject_receipt(request, payment_id):
-    """Reject a payment receipt and send rejection email."""
+    """Reject a payment receipt and send rejection email via signal."""
     payment = get_object_or_404(Payment, id=payment_id, enrollment__course__instructor=request.user)
 
-    student_name = payment.enrollment.student.username
+    student_name = payment.enrollment.student.get_full_name() or payment.enrollment.student.username
     course_name  = payment.enrollment.course.title
 
     if request.method == 'POST':
-        rejection_reason = request.POST.get('rejection_reason', '')
+        rejection_reason = request.POST.get('rejection_reason', '').strip()
 
-        payment.rejection_reason = rejection_reason
-        payment.approved = False
-        payment.rejected = True       # Explicitly mark as rejected in DB
-        payment.save()
+        if not rejection_reason:
+            messages.error(request, "Please provide a rejection reason.")
+            return redirect('payments:review_receipts')
 
-        send_payment_rejection_email(payment, rejection_reason)
+        try:
+            # Set rejection reason and save
+            # Signal will detect this change and send rejection email
+            payment.rejection_reason = rejection_reason
+            payment.approved = False
+            payment.save()  # This will trigger the signal to send rejection email
+            
+            logger.info(f"Payment {payment_id} rejected by instructor {request.user.username}. Reason: {rejection_reason}")
 
-        messages.success(
-            request,
-            f"✓ Payment receipt from {student_name} for {course_name} has been rejected. Rejection email sent."
-        )
+            messages.success(
+                request,
+                f"✓ Payment from {student_name} for {course_name} has been rejected. Rejection email sent to student."
+            )
+        except Exception as e:
+            logger.error(f"Error rejecting payment {payment_id}: {str(e)}", exc_info=True)
+            messages.error(request, f"Error rejecting payment: {str(e)}")
 
     return redirect('payments:review_receipts')

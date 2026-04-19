@@ -370,7 +370,7 @@
               <div class="rcp-cell">
                 {% if payment.approved %}
                   <span class="status-badge status-approved"><i class="fas fa-check me-1"></i>Approved</span>
-                {% elif payment.rejected %}
+                {% elif payment.rejection_reason %}
                   <span class="status-badge status-rejected"><i class="fas fa-times me-1"></i>Rejected</span>
                   {% if payment.rejection_reason %}
                     <div class="student-sub mt-1" title="{{ payment.rejection_reason }}" style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
@@ -393,7 +393,7 @@
                     <a href="{% url 'payments:approve_receipt' payment.id %}" class="action-btn action-approve">
                       <i class="fas fa-check"></i> Approve
                     </a>
-                    {% if not payment.rejected %}
+                    {% if not payment.rejection_reason %}
                     <button type="button" class="action-btn action-reject"
                             data-bs-toggle="modal" data-bs-target="#rejectModal{{ payment.id }}">
                       <i class="fas fa-times"></i> Reject
@@ -406,7 +406,7 @@
           </tr>
 
           <!-- Reject Modal (only for pending — not already approved or rejected) -->
-          {% if not payment.approved and not payment.rejected %}
+          {% if not payment.approved and not payment.rejection_reason %}
           <div class="modal fade" id="rejectModal{{ payment.id }}" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content border-0 rounded-3 shadow">
@@ -428,6 +428,26 @@
                       <label for="rejectionReason{{ payment.id }}" class="form-label fw-semibold small">
                         Rejection Reason <span class="text-danger">*</span>
                       </label>
+                      <textarea class="form-control form-control-sm"
+                                id="rejectionReason{{ payment.id }}"
+                                name="rejection_reason"
+                                rows="3"
+                                placeholder="e.g., Receipt is blurry, wrong amount, missing details…"
+                                required
+                                style="border-color:#fca5a5; border-radius:8px;"></textarea>
+                      <div class="form-text">This feedback will be sent to the student.</div>
+                    </div>
+                  </form>
+                </div>
+                <div class="modal-footer border-0">
+                  <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" form="rejectForm{{ payment.id }}" class="btn btn-sm btn-danger fw-semibold">
+                    <i class="fas fa-times me-1"></i>Yes, Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
                       <textarea class="form-control form-control-sm"
                                 id="rejectionReason{{ payment.id }}"
                                 name="rejection_reason"
