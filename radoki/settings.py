@@ -17,7 +17,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG', default=False)
+DEBUG = env.bool('DEBUG', default=False)
 
 # Production security settings
 if not DEBUG:
@@ -39,13 +39,17 @@ ALLOWED_HOSTS = env.list(
 )
 
 # CSRF trusted origins for development and production
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-    'https://radoki-im-system.onrender.com',
-    'https://*.ngrok-free.dev',
-    'https://*.ngrok.app'
-])
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=[
+        'http://127.0.0.1:8000',
+        'http://localhost:8000',
+        'https://localhost:8000',
+        'https://radoki-im-system.onrender.com',
+        'https://*.ngrok-free.dev',
+        'https://*.ngrok.app',
+    ]
+)
 
 # Keep CSRF cookie alive for 1 year (default) and session for 2 weeks (default).
 CSRF_COOKIE_AGE = 31449600  # 1 year in seconds
