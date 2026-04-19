@@ -8,6 +8,7 @@ __pycache__/
 *.so
 .Python
 env/
+.env.example
 venv/
 ENV/
 build/
