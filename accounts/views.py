@@ -216,10 +216,10 @@ def profile_update(request):
                         from django.core.files.base import ContentFile
                         from django.core.files.storage import default_storage
                         
-                        # Store just the filename/path in the field (Cloudinary will serve it)
-                        filename = f'profile_pics/{upload_response.get("public_id", profile_pic_file.name)}'
-                        request.user.profile_picture = filename
-                        logger.info(f'Stored profile picture path: {filename}')
+                        # Store the public_id (already includes folder path from Cloudinary)
+                        public_id = upload_response.get("public_id", f'profile_pics/{profile_pic_file.name.split(".")[0]}')
+                        request.user.profile_picture = public_id
+                        logger.info(f'Stored profile picture path: {public_id}')
                         
                     except Exception as upload_e:
                         logger.error(f'Manual Cloudinary upload failed: {str(upload_e)}', exc_info=True)
@@ -237,7 +237,8 @@ def profile_update(request):
                     # Verify the resource exists on Cloudinary
                     try:
                         import cloudinary.api
-                        public_id = f'profile_pics/{user.profile_picture.name.split("/")[-1].split(".")[0]}'
+                        # The profile_picture.name is already the public_id
+                        public_id = user.profile_picture.name
                         logger.info(f'Checking Cloudinary for public_id: {public_id}')
                         resource_info = cloudinary.api.resource(public_id)
                         logger.info(f'Cloudinary resource verified: {resource_info["public_id"]}')
