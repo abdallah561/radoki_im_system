@@ -49,6 +49,12 @@ MANIFEST
 media/
 staticfiles/
 
+# Local development test scripts and guides
+test_email_system.py
+test_local_emails.py
+test_password_reset.py
+LOCAL_EMAIL_GUIDE.md
+
 # Test coverage
 .coverage
 htmlcov/
