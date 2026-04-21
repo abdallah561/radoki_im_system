@@ -267,8 +267,8 @@ window.RADOKI_ADMIN_AUTO_LOGOUT = {
   csrfToken:      "{{ csrf_token }}",
   logoutUrl:      "{% url 'accounts:auto_logout' %}",
   loginUrl:       "/admin/login/",
-  timeoutSeconds: 600,
-  warningSeconds: 60
+  timeoutSeconds: 60,
+  warningSeconds: 10
 };
 </script>
 <script src="{% static 'admin/js/admin_auto_logout.js' %}"></script>
