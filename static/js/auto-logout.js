@@ -14,63 +14,51 @@
   const cfg            = window.RADOKI_AUTO_LOGOUT || {};
   const TIMEOUT_MS     = (cfg.timeoutSeconds || 20) * 1000;
   const WARNING_MS     = (cfg.warningSeconds || 10) * 1000;
-  const WARN_AFTER_MS  = TIMEOUT_MS - WARNING_MS;   // inactivity time before warning appears
+  const WARN_AFTER_MS  = TIMEOUT_MS - WARNING_MS;
 
   let idleTimer        = null;
   let warnTimer        = null;
   let countdownInterval = null;
   let secondsLeft      = 0;
   let modalVisible     = false;
+  let logoutInProgress = false;
 
   /* ── Get modal element ── */
   function getModalElement() {
     return document.getElementById('autoLogoutModal');
   }
 
-  /* ── Show modal with vanilla JS (no Bootstrap dependency) ── */
+  /* ── Show modal with vanilla JS only ── */
   function showModalElement() {
     var modal = getModalElement();
     if (modal) {
-      modal.style.display = 'flex';
+      modal.style.display = 'flex !important';
       modal.classList.add('show');
-      /* Try Bootstrap Modal if available */
-      if (window.bootstrap) {
-        try {
-          var bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
-          bsModal.show();
-        } catch (e) {
-          /* Fall back to vanilla JS */
-        }
-      }
+      /* Remove any Bootstrap modal backdrop */
+      document.body.classList.remove('modal-open');
     }
   }
 
-  /* ── Hide modal with vanilla JS ── */
+  /* ── Hide modal with vanilla JS only ── */
   function hideModalElement() {
     var modal = getModalElement();
     if (modal) {
       modal.style.display = 'none';
       modal.classList.remove('show');
-      /* Try Bootstrap Modal if available */
-      if (window.bootstrap) {
-        try {
-          var instance = bootstrap.Modal.getInstance(modal);
-          if (instance) instance.hide();
-        } catch (e) {
-          /* Fall back to vanilla JS */
-        }
-      }
     }
+    /* Clean up any Bootstrap backdrops */
+    var backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+    document.body.classList.remove('modal-open');
   }
 
   /* ── Update countdown display + SVG ring ── */
-  var RING_CIRCUMFERENCE = 226;   /* 2π × r(36) ≈ 226 */
+  var RING_CIRCUMFERENCE = 226;
 
   function updateCountdown() {
     var el = document.getElementById('autoLogoutCountdown');
     if (el) el.textContent = secondsLeft;
 
-    /* Animate the ring: full circle at start, shrinks to 0 */
     var arc = document.getElementById('alRingArc');
     if (arc) {
       var total   = Math.round(WARNING_MS / 1000);
@@ -82,6 +70,8 @@
 
   /* ── Show warning modal ── */
   function showWarning() {
+    if (logoutInProgress) return;
+    
     modalVisible = true;
     secondsLeft  = Math.round(WARNING_MS / 1000);
     updateCountdown();
@@ -94,7 +84,6 @@
       updateCountdown();
       if (secondsLeft <= 0) {
         clearInterval(countdownInterval);
-        /* Ensure logout happens even if timer fails */
         performLogout();
       }
     }, 1000);
@@ -105,18 +94,21 @@
     modalVisible = false;
     clearInterval(countdownInterval);
     hideModalElement();
-    /* Reset ring to full */
     var arc = document.getElementById('alRingArc');
     if (arc) arc.style.strokeDashoffset = 0;
   }
 
   /* ── Perform server-side logout then redirect ── */
   function performLogout() {
+    if (logoutInProgress) return;
+    logoutInProgress = true;
+
     clearInterval(countdownInterval);
     clearTimeout(idleTimer);
     clearTimeout(warnTimer);
 
-    /* Invalidate session on the server before redirecting */
+    hideModalElement();
+
     const done = function () {
       window.location.href = (cfg.loginUrl || '/accounts/login/') +
         '?next=' + encodeURIComponent(window.location.pathname) +
@@ -132,26 +124,29 @@
           'Content-Type': 'application/json',
         },
         credentials: 'same-origin',
+        timeout: 5000,
       }).then(done).catch(done);
+      
+      /* Failsafe: redirect anyway after 2 seconds */
+      setTimeout(done, 2000);
     } catch (e) {
       done();
     }
   }
 
-  /* ── Reset inactivity timers (called on every user interaction) ── */
+  /* ── Reset inactivity timers (only called when modal is NOT visible) ── */
   function resetTimer() {
+    /* Do NOT reset while warning modal is showing */
+    if (modalVisible) return;
+
     clearTimeout(idleTimer);
     clearTimeout(warnTimer);
 
-    /* If the warning modal is visible, close it */
-    if (modalVisible) hideWarning();
-
-    /* Schedule warning → then logout */
     warnTimer = setTimeout(showWarning,     WARN_AFTER_MS);
     idleTimer = setTimeout(performLogout,   TIMEOUT_MS);
   }
 
-  /* ── Attach activity listeners ── */
+  /* ── Attach activity listeners (but respect modal state) ── */
   var ACTIVITY_EVENTS = [
     'mousemove', 'mousedown', 'click',
     'keydown', 'keypress',
@@ -159,14 +154,20 @@
     'scroll', 'wheel',
     'focus',
   ];
+  
   ACTIVITY_EVENTS.forEach(function (evt) {
-    document.addEventListener(evt, resetTimer, { passive: true, capture: true });
+    document.addEventListener(evt, function (e) {
+      /* Ignore activity from the modal itself */
+      var modal = getModalElement();
+      if (modal && modal.contains(e.target)) return;
+      
+      resetTimer();
+    }, { passive: true, capture: true });
   });
 
   /* ── Handle visibility change (tab switching, phone lock screen) ── */
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
-      /* Treat returning to the tab as activity */
       resetTimer();
     }
   });
@@ -175,7 +176,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     var stayBtn = document.getElementById('autoLogoutStayBtn');
     if (stayBtn) {
-      stayBtn.addEventListener('click', function () {
+      stayBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         hideWarning();
         resetTimer();
       });
