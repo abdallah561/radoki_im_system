@@ -1611,10 +1611,34 @@
      AUTO-LOGOUT — Inactivity warning modal
 ══════════════════════════════════════════ -->
 <style>
-  /* ── Auto-logout modal — always centered ── */
+  /* ── Auto-logout modal — vanilla JS + Bootstrap compatible ── */
+  #autoLogoutModal {
+    display: none !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    outline: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  #autoLogoutModal.show {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
   #autoLogoutModal .modal-dialog {
+    position: relative;
+    width: auto;
+    margin: auto;
     margin-left: auto !important;
     margin-right: auto !important;
+    max-width: 360px;
+    width: calc(100% - 2rem);
   }
 
   #autoLogoutModal .al-modal-inner {
@@ -1622,6 +1646,9 @@
     overflow: hidden;
     border: none;
     box-shadow: 0 20px 60px rgba(26,82,118,.22), 0 4px 16px rgba(0,0,0,.10);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Gradient banner */

@@ -19,19 +19,48 @@
   let idleTimer        = null;
   let warnTimer        = null;
   let countdownInterval = null;
-  let bsModal          = null;
   let secondsLeft      = 0;
   let modalVisible     = false;
 
-  /* ── Bootstrap modal instance (lazy) ── */
-  function getModal() {
-    if (!bsModal) {
-      const el = document.getElementById('autoLogoutModal');
-      if (el && window.bootstrap) {
-        bsModal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: false });
+  /* ── Get modal element ── */
+  function getModalElement() {
+    return document.getElementById('autoLogoutModal');
+  }
+
+  /* ── Show modal with vanilla JS (no Bootstrap dependency) ── */
+  function showModalElement() {
+    var modal = getModalElement();
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('show');
+      /* Try Bootstrap Modal if available */
+      if (window.bootstrap) {
+        try {
+          var bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
+          bsModal.show();
+        } catch (e) {
+          /* Fall back to vanilla JS */
+        }
       }
     }
-    return bsModal;
+  }
+
+  /* ── Hide modal with vanilla JS ── */
+  function hideModalElement() {
+    var modal = getModalElement();
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('show');
+      /* Try Bootstrap Modal if available */
+      if (window.bootstrap) {
+        try {
+          var instance = bootstrap.Modal.getInstance(modal);
+          if (instance) instance.hide();
+        } catch (e) {
+          /* Fall back to vanilla JS */
+        }
+      }
+    }
   }
 
   /* ── Update countdown display + SVG ring ── */
@@ -57,14 +86,17 @@
     secondsLeft  = Math.round(WARNING_MS / 1000);
     updateCountdown();
 
-    const modal = getModal();
-    if (modal) modal.show();
+    showModalElement();
 
     clearInterval(countdownInterval);
     countdownInterval = setInterval(function () {
       secondsLeft = Math.max(0, secondsLeft - 1);
       updateCountdown();
-      if (secondsLeft <= 0) clearInterval(countdownInterval);
+      if (secondsLeft <= 0) {
+        clearInterval(countdownInterval);
+        /* Ensure logout happens even if timer fails */
+        performLogout();
+      }
     }, 1000);
   }
 
@@ -72,8 +104,7 @@
   function hideWarning() {
     modalVisible = false;
     clearInterval(countdownInterval);
-    var modal = getModal();
-    if (modal) modal.hide();
+    hideModalElement();
     /* Reset ring to full */
     var arc = document.getElementById('alRingArc');
     if (arc) arc.style.strokeDashoffset = 0;
