@@ -88,6 +88,11 @@ def serve_file_response(file_field, force_download=False, filename=None):
     if not file_field or not file_field.name:
         raise ValueError("File field is empty or invalid")
     
+    # Check if file exists
+    if not file_field.storage.exists(file_field.name):
+        logger.warning(f"File does not exist: {file_field.name}")
+        raise FileNotFoundError(f"File not found: {file_field.name}. It may have been deleted or moved from storage.")
+    
     try:
         file_path = file_field.name
         file_content = None
@@ -113,6 +118,12 @@ def serve_file_response(file_field, force_download=False, filename=None):
                         if '/image/upload/' in file_url:
                             file_url = file_url.replace('/image/upload/', '/raw/upload/')
                             logger.debug(f"Transformed document URL to raw delivery: {file_url}")
+                        # Add quality parameters for PDFs to improve clarity
+                        if ext == '.pdf':
+                            # Add quality parameters to improve PDF viewing
+                            separator = '?' if '?' not in file_url else '&'
+                            file_url = f"{file_url}{separator}fl_attachment"
+                            logger.debug(f"Added PDF quality parameters: {file_url}")
                     
                     file_content = _fetch_file_from_cloudinary_url(file_url)
                 else:

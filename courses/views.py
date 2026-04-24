@@ -898,12 +898,24 @@ def download_resource(request, resource_id):
     if request.user.is_student():
         ResourceDownload.objects.create(resource=resource, student=request.user)
 
+    # Check if file exists before serving
+    if not resource.file:
+        logger.warning(f"Resource {resource.id} has no file attached")
+        messages.error(request, "This resource does not have a file attached.")
+        return redirect('courses:course_detail', pk=resource.course.id)
+    
     # Read file and return as attachment for download
     try:
         from core.file_utils import serve_file_response
         return serve_file_response(resource.file, force_download=True)
+    except FileNotFoundError as e:
+        logger.error(f"File not found for resource {resource.id}: {str(e)}")
+        messages.error(request, f"The file for this resource is no longer available. Please contact the instructor.")
+        return redirect('courses:course_detail', pk=resource.course.id)
     except Exception as e:
-        raise PermissionDenied(f"Error reading file: {str(e)}")
+        logger.error(f"Error serving resource file {resource.id}: {str(e)}", exc_info=True)
+        messages.error(request, "An error occurred while downloading the file. Please try again or contact support.")
+        return redirect('courses:course_detail', pk=resource.course.id)
 
 
 @login_required
