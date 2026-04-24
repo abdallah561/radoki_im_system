@@ -856,7 +856,8 @@ def download_resource(request, resource_id):
     is_staff_exporter = request.user.is_authenticated and request.user.is_staff and not request.user.is_superuser and AdminAccessControl.has_permission(request.user, 'resource', 'export')
 
     # Admin staff who don't have export permission cannot download resources not owned by them
-    if request.user.is_authenticated and request.user.is_staff and not request.user.is_superuser and resource.course.instructor != request.user and not is_staff_exporter:
+    # BUT allow instructors who own the course
+    if request.user.is_authenticated and request.user.is_staff and not request.user.is_superuser and not is_instructor and not is_staff_exporter:
         raise PermissionDenied("Admin staff access denied for this resource")
 
     # If not instructor and not staff exporter, check if student has approved payment and download is allowed
