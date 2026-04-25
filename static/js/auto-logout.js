@@ -258,9 +258,7 @@
       stayBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        debugLog('User clicked "Stay Logged In" button - calling keep-alive');
-        /* Call keep-alive to ensure session is extended */
-        callKeepAlive();
+        debugLog('User clicked "Stay Logged In" button');
         hideWarning();
         resetTimer();
       });

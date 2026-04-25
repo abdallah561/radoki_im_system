@@ -191,10 +191,10 @@ window.RADOKI_AUTO_LOGOUT = {
   csrfToken:      "{{ csrf_token }}",
   logoutUrl:      "{% url 'admin:logout' %}",
   loginUrl:       "{% url 'admin:login' %}",
-  keepAliveUrl:   "{% url 'accounts:keep_alive' %}",
   timeoutSeconds: 600,
   warningSeconds: 60,
   isAdmin: true
+  // keepAliveUrl removed: session refresh handled by SESSION_SAVE_EVERY_REQUEST
 };
 </script>
 <script src="{% static 'js/auto-logout.js' %}"></script>

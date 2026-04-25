@@ -150,8 +150,11 @@ def auto_logout_view(request):
 def keep_alive_view(request):
     """AJAX endpoint to keep the session alive by refreshing server-side session data.
     
-    This is called during user activity within the warning period to prevent logout.
-    Refreshes the session expiration timer on the server.
+    DEPRECATED: This endpoint is no longer actively used.
+    Session refresh is now handled entirely by SESSION_SAVE_EVERY_REQUEST on normal requests.
+    Kept for backward compatibility only.
+    
+    Previously called during user activity within the warning period to prevent logout.
     """
     from django.http import JsonResponse
     
