@@ -222,10 +222,10 @@ LOGIN_URL = 'accounts:login'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Session Configuration for Auto-Logout
-# Set to 5 minutes (300 seconds) - allows reasonable time for actions before inactivity timeout
-SESSION_COOKIE_AGE = 300  # 5 minutes in seconds
+# Set to 10 minutes (600 seconds) - matches the inactivity timeout UI + 60-second warning
+SESSION_COOKIE_AGE = 600  # 10 minutes in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Expire session when browser closes
-SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request
+SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request to track inactivity
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing session cookie
 
 # Email Configuration

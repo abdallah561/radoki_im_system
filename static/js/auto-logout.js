@@ -1,20 +1,30 @@
 /**
  * auto-logout.js — Inactivity-based automatic session logout
  *
+ * Features:
+ * - Monitors user inactivity and logs out after configured timeout (default: 10 minutes / 600 seconds)
+ * - Displays warning modal 60 seconds before logout
+ * - Resets timer on any user interaction (mouse, keyboard, touch, scroll, focus)
+ * - Refreshes server-side session with keep-alive AJAX endpoint
+ * - Ignores user interactions originating from the modal itself
+ * - Handles tab visibility changes (pauses tracking when tab is hidden)
+ *
  * Configuration (set via window.RADOKI_AUTO_LOGOUT before this script loads):
- *   csrfToken      — Django CSRF token for the AJAX POST request
+ *   csrfToken      — Django CSRF token for AJAX POST requests
  *   logoutUrl      — Server-side logout endpoint (POST, invalidates session)
+ *   keepAliveUrl   — Server-side keep-alive endpoint (POST, refreshes session)
  *   loginUrl       — Where to redirect after logout
- *   timeoutSeconds — Total inactivity timeout (default: 20)
- *   warningSeconds — How many seconds before timeout to show the warning modal (default: 10)
+ *   timeoutSeconds — Total inactivity timeout in seconds (default: 600 = 10 minutes)
+ *   warningSeconds — How many seconds before timeout to show warning (default: 60)
  */
 (function () {
   'use strict';
 
   const cfg            = window.RADOKI_AUTO_LOGOUT || {};
-  const TIMEOUT_MS     = (cfg.timeoutSeconds || 20) * 1000;
-  const WARNING_MS     = (cfg.warningSeconds || 10) * 1000;
-  const WARN_AFTER_MS  = TIMEOUT_MS - WARNING_MS;
+  const TIMEOUT_MS     = (cfg.timeoutSeconds || 600) * 1000;   // Total timeout: 10 minutes
+  const WARNING_MS     = (cfg.warningSeconds || 60) * 1000;     // Warning before logout: 60 seconds
+  const WARN_AFTER_MS  = TIMEOUT_MS - WARNING_MS;               // Show warning at 9-minute mark
+  const DEBUG          = false;  // Set to true for console logging
 
   let idleTimer        = null;
   let warnTimer        = null;
@@ -22,6 +32,14 @@
   let secondsLeft      = 0;
   let modalVisible     = false;
   let logoutInProgress = false;
+  let lastActivityTime = Date.now();
+
+  /* ── Utility: Debug logging ── */
+  function debugLog(msg, data) {
+    if (DEBUG) {
+      console.log('[auto-logout] ' + msg, data || '');
+    }
+  }
 
   /* ── Get modal element ── */
   function getModalElement() {
@@ -36,6 +54,7 @@
       modal.classList.add('show');
       /* Remove any Bootstrap modal backdrop */
       document.body.classList.remove('modal-open');
+      debugLog('Modal displayed');
     }
   }
 
@@ -50,6 +69,7 @@
     var backdrop = document.querySelector('.modal-backdrop');
     if (backdrop) backdrop.remove();
     document.body.classList.remove('modal-open');
+    debugLog('Modal hidden');
   }
 
   /* ── Update countdown display + SVG ring ── */
@@ -68,10 +88,37 @@
     }
   }
 
+  /* ── Call server-side keep-alive endpoint ── */
+  function callKeepAlive() {
+    if (!cfg.keepAliveUrl) {
+      debugLog('No keep-alive URL configured');
+      return;
+    }
+
+    fetch(cfg.keepAliveUrl, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': cfg.csrfToken || '',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json',
+      },
+      credentials: 'same-origin',
+    }).then(function(response) {
+      if (response.ok) {
+        debugLog('Keep-alive call successful - session refreshed on server');
+      } else {
+        debugLog('Keep-alive failed with status: ' + response.status);
+      }
+    }).catch(function(error) {
+      debugLog('Keep-alive fetch error:', error);
+    });
+  }
+
   /* ── Show warning modal ── */
   function showWarning() {
     if (logoutInProgress) return;
     
+    debugLog('WARNING MODAL TRIGGERED - User has 60 seconds to respond');
     modalVisible = true;
     secondsLeft  = Math.round(WARNING_MS / 1000);
     updateCountdown();
@@ -82,8 +129,10 @@
     countdownInterval = setInterval(function () {
       secondsLeft = Math.max(0, secondsLeft - 1);
       updateCountdown();
+      
       if (secondsLeft <= 0) {
         clearInterval(countdownInterval);
+        debugLog('Countdown reached zero - performing logout');
         performLogout();
       }
     }, 1000);
@@ -96,6 +145,7 @@
     hideModalElement();
     var arc = document.getElementById('alRingArc');
     if (arc) arc.style.strokeDashoffset = 0;
+    debugLog('Warning modal hidden - session will continue');
   }
 
   /* ── Perform server-side logout then redirect ── */
@@ -109,10 +159,11 @@
 
     hideModalElement();
 
+    debugLog('LOGGING OUT - Session terminated due to inactivity');
+
     const done = function () {
       window.location.href = (cfg.loginUrl || '/accounts/login/') +
-        '?next=' + encodeURIComponent(window.location.pathname) +
-        '&reason=idle';
+        '?reason=session_expired';
     };
 
     try {
@@ -124,25 +175,39 @@
           'Content-Type': 'application/json',
         },
         credentials: 'same-origin',
-        timeout: 5000,
       }).then(done).catch(done);
       
       /* Failsafe: redirect anyway after 2 seconds */
       setTimeout(done, 2000);
     } catch (e) {
+      debugLog('Logout fetch error:', e);
       done();
     }
   }
 
-  /* ── Reset inactivity timers (only called when modal is NOT visible) ── */
+  /* ── Reset inactivity timers ── */
   function resetTimer() {
     /* Do NOT reset while warning modal is showing */
-    if (modalVisible) return;
+    if (modalVisible) {
+      debugLog('User activity detected during warning - user can stay logged in');
+      /* Call keep-alive to refresh server session */
+      callKeepAlive();
+      return;
+    }
+
+    lastActivityTime = Date.now();
+    debugLog('Activity detected - timer reset (10 minutes until timeout)');
 
     clearTimeout(idleTimer);
     clearTimeout(warnTimer);
 
+    /* Keep-alive AJAX call to refresh server-side session */
+    callKeepAlive();
+
+    /* Schedule warning modal at 9-minute mark */
     warnTimer = setTimeout(showWarning,     WARN_AFTER_MS);
+    
+    /* Schedule logout at 10-minute mark */
     idleTimer = setTimeout(performLogout,   TIMEOUT_MS);
   }
 
@@ -159,7 +224,10 @@
     document.addEventListener(evt, function (e) {
       /* Ignore activity from the modal itself */
       var modal = getModalElement();
-      if (modal && modal.contains(e.target)) return;
+      if (modal && modal.contains(e.target)) {
+        /* Only allow "Stay Logged In" and "Logout Now" buttons from modal */
+        return;
+      }
       
       resetTimer();
     }, { passive: true, capture: true });
@@ -168,7 +236,10 @@
   /* ── Handle visibility change (tab switching, phone lock screen) ── */
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
+      debugLog('Tab became visible - resetting timer');
       resetTimer();
+    } else {
+      debugLog('Tab hidden - timers paused');
     }
   });
 
@@ -179,13 +250,22 @@
       stayBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
+        debugLog('User clicked "Stay Logged In" button');
         hideWarning();
         resetTimer();
       });
     }
   });
 
-  /* ── Kick off ── */
+  /* ── Handle page unload (cleanup) ── */
+  window.addEventListener('beforeunload', function () {
+    clearTimeout(idleTimer);
+    clearTimeout(warnTimer);
+    clearInterval(countdownInterval);
+  });
+
+  /* ── Kick off initial timer ── */
+  debugLog('Auto-logout initialized: 10 min timeout, 60 sec warning');
   resetTimer();
 
 }());

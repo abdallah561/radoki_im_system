@@ -1886,8 +1886,9 @@ window.RADOKI_AUTO_LOGOUT = {
   csrfToken:      "{{ csrf_token }}",
   logoutUrl:      "{% url 'accounts:auto_logout' %}",
   loginUrl:       "{% url 'accounts:login' %}",
-  timeoutSeconds: 60,
-  warningSeconds: 10
+  timeoutSeconds: 600,  // 10 minutes of inactivity before logout
+  warningSeconds: 60,   // Show warning modal 60 seconds before logout (at 9-minute mark)
+  keepAliveUrl:   "{% url 'accounts:keep_alive' %}"  // AJAX endpoint to refresh server-side session
 };
 </script>
 <script src="{% static 'js/auto-logout.js' %}"></script>

@@ -76,6 +76,14 @@ def login_view(request):
         if request.session.get('_normal_site_auth'):
             return redirect('core:home')
 
+    # ✅ Handle session expiration message from auto-logout
+    reason = request.GET.get('reason')
+    if reason == 'session_expired':
+        messages.warning(
+            request,
+            'Your session has expired due to inactivity. Please log in again to continue.'
+        )
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -137,6 +145,26 @@ def auto_logout_view(request):
         logout(request)
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'ignored'}, status=400)
+
+
+def keep_alive_view(request):
+    """AJAX endpoint to keep the session alive by refreshing server-side session data.
+    
+    This is called during user activity within the warning period to prevent logout.
+    Refreshes the session expiration timer on the server.
+    """
+    from django.http import JsonResponse
+    
+    if request.method == 'POST' and request.user.is_authenticated:
+        # Simply accessing the session and returning a response refreshes the session
+        # because SESSION_SAVE_EVERY_REQUEST = True in settings.py
+        return JsonResponse({
+            'status': 'ok',
+            'message': 'Session refreshed',
+            'user': request.user.username
+        })
+    
+    return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
 
 
 @login_required
