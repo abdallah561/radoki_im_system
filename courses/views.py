@@ -766,8 +766,14 @@ def preview_resource(request, resource_id):
     file_name = resource.file.name
     file_ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
 
-    # URLs - Using direct serve endpoint
-    file_url = f'/courses/resource/{resource.id}/serve/'
+    # For Cloudinary storage, get the direct URL; for local storage, use the serve endpoint
+    from core.file_utils import _is_using_cloudinary, get_cloudinary_url
+    if _is_using_cloudinary():
+        # Get direct Cloudinary URL for preview
+        file_url = get_cloudinary_url(resource.file, force_download=False)
+    else:
+        # For local storage, use the serve endpoint
+        file_url = f'/courses/resource/{resource.id}/serve/'
 
     # Determine preview type for template
     # Only PDF files can be previewed; all other files show download option
@@ -817,7 +823,19 @@ def serve_file(request, resource_id):
             if resource.course.instructor != request.user and not request.user.is_superuser:
                 raise PermissionDenied("🔒 Access Denied: You can only access resources from your own courses.")
 
-        # Use the improved file serving function that handles Cloudinary
+        # For Cloudinary storage, just redirect to the Cloudinary URL
+        # The browser will handle the preview/display
+        from core.file_utils import _is_using_cloudinary, get_cloudinary_url
+        if _is_using_cloudinary():
+            # Get the Cloudinary URL
+            cloudinary_url = get_cloudinary_url(resource.file, force_download=False)
+            if cloudinary_url:
+                # For Cloudinary, redirect to the URL
+                # Browser will handle display based on file type
+                from django.shortcuts import redirect
+                return redirect(cloudinary_url)
+        
+        # Fallback to file response for local storage
         from core.file_utils import serve_file_response
         response = serve_file_response(resource.file, force_download=False)
         
@@ -905,7 +923,15 @@ def download_resource(request, resource_id):
         messages.error(request, "This resource does not have a file attached.")
         return redirect('courses:course_detail', pk=resource.course.id)
     
-    # Read file and return as attachment for download
+    # For Cloudinary storage, redirect directly to the Cloudinary URL with attachment flag
+    from core.file_utils import _is_using_cloudinary, get_cloudinary_url
+    if _is_using_cloudinary():
+        cloudinary_url = get_cloudinary_url(resource.file, force_download=True)
+        if cloudinary_url:
+            from django.shortcuts import redirect
+            return redirect(cloudinary_url)
+    
+    # Fallback to file response for local storage
     try:
         from core.file_utils import serve_file_response
         return serve_file_response(resource.file, force_download=True)
@@ -947,6 +973,14 @@ def download_lesson_resource(request, lesson_id):
     # Track download for students only
     if not is_instructor:
         LessonResourceDownload.objects.create(lesson=lesson, student=request.user)
+
+    # For Cloudinary storage, redirect directly to the Cloudinary URL with attachment flag
+    from core.file_utils import _is_using_cloudinary, get_cloudinary_url
+    if _is_using_cloudinary():
+        cloudinary_url = get_cloudinary_url(lesson.resource_file, force_download=True)
+        if cloudinary_url:
+            from django.shortcuts import redirect
+            return redirect(cloudinary_url)
 
     try:
         from core.file_utils import serve_file_response

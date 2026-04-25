@@ -173,16 +173,18 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
             'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
             'API_KEY': CLOUDINARY_API_KEY,
             'API_SECRET': CLOUDINARY_API_SECRET,
-            'FOLDER': 'radoki_media',  # Organize files in a folder
+            'FOLDER': 'radoki_media',  # All files organized under this folder
             'RESOURCE_TYPE': 'auto',  # Automatically determine resource type (images, pdfs, docs, etc.)
             'USE_FILENAME': True,  # Use original filename
             'UNIQUE_FILENAME': True,  # Ensure unique filenames
-            'TYPE': 'upload',  # Use upload type for persistent storage
+            'TYPE': 'upload',  # Use upload type for persistent storage (not staging)
             'SECURE': True,  # Always use HTTPS
         }
-        # Cloudinary media URL - use raw endpoint which serves all file types (images, PDFs, documents, etc.)
-        # cloudinary_storage will automatically determine the correct resource type for each file
-        MEDIA_URL = f'https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/raw/upload/'
+        # MEDIA_URL for Cloudinary - points to raw/upload endpoint for all file types
+        # Files are automatically routed to /image/upload/ for images and /raw/upload/ for documents
+        # The actual endpoint is determined by Cloudinary based on RESOURCE_TYPE: 'auto'
+        # Folder path: https://res.cloudinary.com/{CLOUD_NAME}/raw/upload/radoki_media/...
+        MEDIA_URL = f'https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/raw/upload/radoki_media/'
         # Note: MEDIA_ROOT is not used with Cloudinary storage, but kept for compatibility
         MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     except ImportError:

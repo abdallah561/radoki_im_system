@@ -197,6 +197,14 @@ def view_receipt(request, payment_id):
         messages.error(request, "This payment has no receipt file.")
         return redirect('dashboard:index')
     
+    # For Cloudinary storage, redirect directly to the Cloudinary URL
+    from core.file_utils import _is_using_cloudinary, get_cloudinary_url
+    if _is_using_cloudinary():
+        cloudinary_url = get_cloudinary_url(payment.receipt, force_download=False)
+        if cloudinary_url:
+            from django.shortcuts import redirect
+            return redirect(cloudinary_url)
+    
     try:
         from core.file_utils import serve_file_response
         # For receipts, serve inline (for viewing) not as attachment

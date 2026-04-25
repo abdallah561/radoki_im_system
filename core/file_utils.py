@@ -1,14 +1,19 @@
 """
 Utility functions for handling file serving from both local and Cloudinary storage.
+
+IMPORTANT: For Cloudinary storage, we redirect to Cloudinary URLs directly instead of
+fetching files through the Django server. This avoids 404 errors, improves performance,
+and lets browsers cache files directly from the CDN.
+
+For local storage, we still serve files through Django for backwards compatibility.
 """
 import os
 import logging
 import mimetypes
-import urllib.request
-import ssl
 from django.conf import settings
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, FileNotFoundError
 from django.core.files.storage import default_storage
+from django.shortcuts import redirect
 
 logger = logging.getLogger(__name__)
 
@@ -22,68 +27,73 @@ def _is_using_cloudinary():
     )
 
 
-def _fetch_file_from_cloudinary_url(file_url):
+def get_cloudinary_url(file_field, force_download=False):
     """
-    Fetch file content from a Cloudinary URL.
+    Get the proper Cloudinary URL for a file with correct parameters.
+    
+    For Cloudinary files, this returns the CDN URL that should be used directly.
+    The browser will download/display the file directly from Cloudinary's servers,
+    not through Django.
     
     Args:
-        file_url: The Cloudinary URL
+        file_field: Django FileField instance
+        force_download: If True, add ?fl_attachment to force download
     
     Returns:
-        File content as bytes
-    
-    Raises:
-        Exception: If file cannot be fetched
+        The Cloudinary URL string, or None if file is empty
     """
+    if not file_field or not file_field.name:
+        return None
+    
     try:
-        # Create an SSL context that properly validates certificates
-        ssl_context = ssl.create_default_context()
+        file_url = file_field.url
         
-        # Create a request with proper headers
-        request = urllib.request.Request(
-            file_url,
-            headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-        )
+        if not file_url:
+            logger.warning(f"Could not get URL for file field")
+            return None
         
-        # Use urllib to fetch the file from Cloudinary URL
-        with urllib.request.urlopen(request, context=ssl_context, timeout=30) as response:
-            file_content = response.read()
-            
-        if not file_content:
-            raise ValueError(f"Received empty response from {file_url}")
-            
-        return file_content
+        # Ensure it's HTTPS
+        if file_url.startswith('http://'):
+            file_url = 'https://' + file_url[7:]
         
-    except urllib.error.HTTPError as e:
-        error_msg = f"HTTP Error {e.code} when fetching from Cloudinary URL {file_url}: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise Exception(error_msg)
-    except urllib.error.URLError as e:
-        error_msg = f"URL Error when fetching from Cloudinary URL {file_url}: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise Exception(error_msg)
+        # Get file extension
+        _, ext = os.path.splitext(file_field.name)
+        ext = ext.lower()
+        
+        # Add appropriate parameters based on file type and download flag
+        if force_download:
+            # Add attachment flag for force download
+            separator = '?' if '?' not in file_url else '&'
+            file_url = f"{file_url}{separator}fl_attachment"
+        
+        logger.debug(f"Generated Cloudinary URL: {file_url}")
+        return file_url
+        
     except Exception as e:
-        error_msg = f"Error fetching file from Cloudinary URL {file_url}: {str(e)}"
-        logger.error(error_msg, exc_info=True)
-        raise Exception(error_msg)
+        logger.error(f"Error generating Cloudinary URL for {file_field.name}: {str(e)}", exc_info=True)
+        return None
 
 
 def serve_file_response(file_field, force_download=False, filename=None):
     """
     Serve a file from either local storage or Cloudinary.
     
+    FOR CLOUDINARY FILES: Returns a redirect response to the Cloudinary URL.
+    The browser will download/display directly from Cloudinary's CDN, which is faster
+    and more reliable than fetching through Django.
+    
+    FOR LOCAL FILES: Returns the file content through Django (backwards compatibility).
+    
     Args:
         file_field: Django FileField instance
-        force_download: If True, set Content-Disposition to attachment for download
+        force_download: If True, file will be downloaded (not displayed inline)
         filename: Optional filename for download (defaults to original filename)
     
     Returns:
-        HttpResponse with file content
+        Redirect response (for Cloudinary) or HttpResponse with file content (for local)
     
     Raises:
-        Exception: If file cannot be read
+        Exception: If file cannot be served
     """
     if not file_field or not file_field.name:
         raise ValueError("File field is empty or invalid")
@@ -95,58 +105,29 @@ def serve_file_response(file_field, force_download=False, filename=None):
     
     try:
         file_path = file_field.name
-        file_content = None
-        file_url = None
         
         # Check if using Cloudinary storage
         if _is_using_cloudinary():
-            try:
-                # For Cloudinary, get the URL and fetch the content from it
-                file_url = file_field.url
-                
-                logger.debug(f"Original file URL from cloudinary_storage: {file_url}")
-                
-                # Ensure it's an absolute URL
-                if file_url and (file_url.startswith('http://') or file_url.startswith('https://')):
-                    # For documents (PDFs, etc.), transform the URL if needed
-                    # Check file extension
-                    _, ext = os.path.splitext(file_path)
-                    ext = ext.lower()
-                    
-                    # If it's a document and the URL has /image/upload/, change to /raw/upload/
-                    if ext in ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.txt', '.rtf', '.csv']:
-                        if '/image/upload/' in file_url:
-                            file_url = file_url.replace('/image/upload/', '/raw/upload/')
-                            logger.debug(f"Transformed document URL to raw delivery: {file_url}")
-                        # Add quality parameters for PDFs to improve clarity
-                        if ext == '.pdf':
-                            # Add quality parameters to improve PDF viewing
-                            separator = '?' if '?' not in file_url else '&'
-                            file_url = f"{file_url}{separator}fl_attachment"
-                            logger.debug(f"Added PDF quality parameters: {file_url}")
-                    
-                    file_content = _fetch_file_from_cloudinary_url(file_url)
-                else:
-                    # Fallback: try to open the file directly
-                    logger.debug(f"File URL is not absolute, attempting direct file read")
-                    with file_field.open('rb') as file_obj:
-                        file_content = file_obj.read()
-            except Exception as e:
-                logger.warning(f"Could not fetch from Cloudinary URL, trying local read: {str(e)}")
-                # Fallback to local file reading
-                try:
-                    with file_field.open('rb') as file_obj:
-                        file_content = file_obj.read()
-                except Exception as e2:
-                    logger.error(f"Fallback local read also failed: {str(e2)}", exc_info=True)
-                    raise
-        else:
-            # For local storage, use the standard approach
-            logger.debug(f"Using local storage for file: {file_path}")
-            with file_field.open('rb') as file_obj:
-                file_content = file_obj.read()
+            # For Cloudinary, get the URL and let the browser fetch it directly
+            cloudinary_url = get_cloudinary_url(file_field, force_download=force_download)
+            
+            if cloudinary_url:
+                logger.info(f"Redirecting to Cloudinary URL for file: {file_path}")
+                # Return redirect to Cloudinary URL
+                # The browser will handle the download/display
+                return redirect(cloudinary_url)
+            else:
+                # If we couldn't generate a URL, fall back to local file reading
+                logger.warning(f"Could not generate Cloudinary URL, falling back to local read for: {file_path}")
+                # Fall through to local file handling below
         
-        # If still no content, raise error
+        # For local storage or as fallback
+        logger.debug(f"Using local storage for file: {file_path}")
+        
+        # Get file content
+        with file_field.open('rb') as file_obj:
+            file_content = file_obj.read()
+        
         if file_content is None:
             raise ValueError(f"Could not read file content from {file_path}")
         
@@ -162,13 +143,12 @@ def serve_file_response(file_field, force_download=False, filename=None):
         # Create response
         response = HttpResponse(file_content, content_type=content_type)
         
-        # Set filename for download
+        # Set filename
+        dl_filename = filename or os.path.basename(file_path)
         if force_download:
-            dl_filename = filename or os.path.basename(file_path)
             response['Content-Disposition'] = f'attachment; filename="{dl_filename}"'
         else:
             # For inline viewing (like PDF preview), use inline disposition
-            dl_filename = filename or os.path.basename(file_path)
             response['Content-Disposition'] = f'inline; filename="{dl_filename}"'
         
         response['Content-Length'] = len(file_content)
@@ -187,8 +167,9 @@ def serve_file_response(file_field, force_download=False, filename=None):
 def get_file_url(file_field):
     """
     Get the URL for a file, handling both local and Cloudinary storage.
+    
     For local files, returns /media/... path.
-    For Cloudinary files, returns the Cloudinary URL.
+    For Cloudinary files, returns the Cloudinary CDN URL.
     
     Args:
         file_field: Django FileField instance
@@ -202,6 +183,11 @@ def get_file_url(file_field):
     try:
         # Try to get the URL from the storage backend
         url = file_field.url
+        
+        # Ensure HTTPS for Cloudinary URLs
+        if url and url.startswith('http://'):
+            url = 'https://' + url[7:]
+        
         return url
     except Exception as e:
         logger.warning(f"Could not get URL for file {file_field.name}: {str(e)}")
