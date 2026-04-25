@@ -5,7 +5,8 @@
  * - Monitors user inactivity and logs out after configured timeout (default: 10 minutes / 600 seconds)
  * - Displays warning modal 60 seconds before logout
  * - Resets timer on any user interaction (mouse, keyboard, touch, scroll, focus)
- * - Refreshes server-side session with keep-alive AJAX endpoint
+ * - Session stays fresh via SESSION_SAVE_EVERY_REQUEST on normal requests
+ * - Keep-alive called only when user clicks 'Stay Logged In' button
  * - Ignores user interactions originating from the modal itself
  * - Handles tab visibility changes (pauses tracking when tab is hidden)
  *
@@ -94,6 +95,8 @@
       debugLog('No keep-alive URL configured');
       return;
     }
+
+    debugLog('Keep-alive call initiated');
 
     fetch(cfg.keepAliveUrl, {
       method: 'POST',
@@ -197,8 +200,7 @@
     /* Do NOT reset while warning modal is showing */
     if (modalVisible) {
       debugLog('User activity detected during warning - user can stay logged in');
-      /* Call keep-alive to refresh server session */
-      callKeepAlive();
+      /* No keep-alive call needed - SESSION_SAVE_EVERY_REQUEST handles session refresh */
       return;
     }
 
@@ -208,8 +210,7 @@
     clearTimeout(idleTimer);
     clearTimeout(warnTimer);
 
-    /* Keep-alive AJAX call to refresh server-side session */
-    callKeepAlive();
+    /* Session refreshed via SESSION_SAVE_EVERY_REQUEST on normal requests */
 
     /* Schedule warning modal at 9-minute mark */
     warnTimer = setTimeout(showWarning,     WARN_AFTER_MS);
@@ -257,7 +258,9 @@
       stayBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        debugLog('User clicked "Stay Logged In" button');
+        debugLog('User clicked "Stay Logged In" button - calling keep-alive');
+        /* Call keep-alive to ensure session is extended */
+        callKeepAlive();
         hideWarning();
         resetTimer();
       });
