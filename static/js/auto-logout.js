@@ -258,7 +258,19 @@
       stayBtn.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        debugLog('User clicked "Stay Logged In" button');
+        debugLog('User clicked "Stay Logged In" button - making session refresh request');
+        
+        /* Make a minimal GET request to trigger SESSION_SAVE_EVERY_REQUEST on the server */
+        /* This refreshes the session timeout without any UI changes */
+        fetch(window.location.href, {
+          method: 'GET',
+          credentials: 'same-origin',
+        }).then(function() {
+          debugLog('Session refresh successful');
+        }).catch(function(error) {
+          debugLog('Session refresh error:', error);
+        });
+        
         hideWarning();
         resetTimer();
       });
