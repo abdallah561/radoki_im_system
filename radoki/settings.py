@@ -163,23 +163,28 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
         cloudinary.config(
             cloud_name=CLOUDINARY_CLOUD_NAME,
             api_key=CLOUDINARY_API_KEY,
-            api_secret=CLOUDINARY_API_SECRET
+            api_secret=CLOUDINARY_API_SECRET,
+            secure=True,  # Always use HTTPS for Cloudinary URLs
         )
 
         # Use Cloudinary for media storage
-        DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+        DEFAULT_FILE_STORAGE = 'core.storage.CloudinaryMediaStorage'
         CLOUDINARY_STORAGE = {
             'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
             'API_KEY': CLOUDINARY_API_KEY,
             'API_SECRET': CLOUDINARY_API_SECRET,
             'FOLDER': 'radoki_media',  # Organize files in a folder
-            'RESOURCE_TYPE': 'auto',  # Automatically determine resource type
+            'RESOURCE_TYPE': 'auto',  # Automatically determine resource type (images, pdfs, docs, etc.)
             'USE_FILENAME': True,  # Use original filename
             'UNIQUE_FILENAME': True,  # Ensure unique filenames
+            'TYPE': 'upload',  # Use upload type for persistent storage
+            'SECURE': True,  # Always use HTTPS
         }
-        # Cloudinary media URL - Note: this may vary based on file type
-        # The cloudinary_storage package will handle proper URL generation
-        MEDIA_URL = f'https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/image/upload/'
+        # Cloudinary media URL - use raw endpoint which serves all file types (images, PDFs, documents, etc.)
+        # cloudinary_storage will automatically determine the correct resource type for each file
+        MEDIA_URL = f'https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/raw/upload/'
+        # Note: MEDIA_ROOT is not used with Cloudinary storage, but kept for compatibility
+        MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     except ImportError:
         # Fallback if cloudinary is not installed
         print("Warning: Cloudinary packages not installed. Using local media storage.")
