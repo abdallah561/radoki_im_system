@@ -161,9 +161,16 @@
 
     debugLog('LOGGING OUT - Session terminated due to inactivity');
 
+    const isAdmin = cfg.isAdmin || false;
+    
     const done = function () {
-      window.location.href = (cfg.loginUrl || '/accounts/login/') +
-        '?reason=session_expired';
+      if (isAdmin) {
+        /* For admin, redirect to admin login - Django admin handles logout on login page */
+        window.location.href = (cfg.loginUrl || '/admin/login/') + '?reason=session_expired';
+      } else {
+        /* For normal site, use the reason parameter */
+        window.location.href = (cfg.loginUrl || '/accounts/login/') + '?reason=session_expired';
+      }
     };
 
     try {

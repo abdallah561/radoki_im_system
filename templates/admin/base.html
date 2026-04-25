@@ -1,1 +1,201 @@
 {% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  /* Auto-logout modal styles for admin */
+  #autoLogoutModal {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.5); z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+  }
+  #autoLogoutModal.show { display: flex !important; }
+  
+  .al-modal-inner {
+    background: #fff; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.2);
+    max-width: 360px; width: calc(100% - 2rem); padding: 0;
+    animation: slideUp .3s ease-out;
+  }
+  
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  .al-header {
+    background: linear-gradient(135deg, #1a5276, #3498db);
+    color: #fff; padding: 20px; border-radius: 12px 12px 0 0;
+    display: flex; gap: 15px; align-items: center;
+  }
+  
+  .al-header-icon {
+    width: 50px; height: 50px; background: rgba(255,255,255,.2);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  
+  .al-header h6 { margin: 0; font-size: 18px; font-weight: 600; }
+  .al-header p { margin: 0; font-size: 13px; opacity: .9; }
+  
+  .al-body {
+    padding: 30px 20px; text-align: center;
+  }
+  
+  .al-ring-wrap {
+    width: 140px; height: 140px; margin: 0 auto 20px;
+    position: relative; display: flex; align-items: center; justify-content: center;
+  }
+  
+  .al-ring-svg {
+    width: 100%; height: 100%; transform: scaleX(-1);
+  }
+  
+  .al-ring-track {
+    fill: none; stroke: #e0e0e0; stroke-width: 2;
+  }
+  
+  .al-ring-progress {
+    fill: none; stroke: url(#alRingGradient); stroke-width: 3;
+    stroke-linecap: round; stroke-dasharray: 226; stroke-dashoffset: 0;
+    transition: stroke-dashoffset .1s linear;
+  }
+  
+  .al-ring-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  
+  .al-ring-icon {
+    font-size: 32px; color: #2980b9; margin-bottom: 4px;
+  }
+  
+  .al-ring-num {
+    display: block; font-size: 36px; font-weight: 700;
+    color: #1a5276; line-height: 1;
+  }
+  
+  .al-ring-label {
+    display: block; font-size: 11px; color: #7f8c8d;
+    font-weight: 500; text-transform: uppercase; letter-spacing: 1px;
+  }
+  
+  .al-title {
+    font-size: 18px; font-weight: 600; color: #2c3e50; margin: 0 0 10px;
+  }
+  
+  .al-sub {
+    font-size: 14px; color: #7f8c8d; margin: 0 0 12px; line-height: 1.5;
+  }
+  
+  .al-hint {
+    font-size: 13px; color: #95a5a6; margin: 0; padding: 10px;
+    background: #f8f9fa; border-radius: 8px;
+  }
+  
+  .al-divider {
+    height: 1px; background: #ecf0f1; margin: 20px 0;
+  }
+  
+  .al-footer {
+    display: flex; gap: 10px; padding: 0 20px 20px;
+  }
+  
+  .al-btn-stay, .al-btn-logout {
+    flex: 1; padding: 12px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; text-align: center;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all .2s;
+  }
+  
+  .al-btn-stay {
+    background: #2980b9; color: #fff;
+  }
+  
+  .al-btn-stay:hover {
+    background: #1a5276;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(41,128,185,.3);
+  }
+  
+  .al-btn-logout {
+    background: transparent; color: #5d7a8a; border: 1.5px solid #c8d8e4;
+  }
+  
+  .al-btn-logout:hover {
+    border-color: #2980b9; color: #1a5276;
+    transform: translateY(-1px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{{ block.super }}
+
+<!-- Auto-logout Modal for Admin -->
+<div id="autoLogoutModal" tabindex="-1" aria-modal="true" role="dialog">
+  <div style="max-width:360px;width:calc(100% - 2rem);">
+    <div class="al-modal-inner">
+      <div class="al-header">
+        <div class="al-header-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div>
+          <h6>Session Timeout</h6>
+          <p>Inactivity detected on your account</p>
+        </div>
+      </div>
+
+      <div class="al-body">
+        <div class="al-ring-wrap">
+          <svg class="al-ring-svg" viewBox="0 0 90 90" aria-hidden="true">
+            <defs>
+              <linearGradient id="alRingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#1a5276"/>
+                <stop offset="100%" stop-color="#3498db"/>
+              </linearGradient>
+            </defs>
+            <circle class="al-ring-track" cx="45" cy="45" r="36"/>
+            <circle class="al-ring-progress" cx="45" cy="45" r="36" id="alRingArc"/>
+          </svg>
+          <div class="al-ring-center">
+            <i class="fas fa-user-clock al-ring-icon"></i>
+            <span class="al-ring-num" id="autoLogoutCountdown">10</span>
+            <span class="al-ring-label">sec</span>
+          </div>
+        </div>
+
+        <p class="al-title">You've been inactive</p>
+        <p class="al-sub">Your session will expire automatically to protect your account.</p>
+        <p class="al-hint">
+          <i class="fas fa-mouse-pointer me-1"></i>Move your mouse or press any key to stay signed in.
+        </p>
+        <div class="al-divider"></div>
+      </div>
+
+      <div class="al-footer">
+        <button type="button" id="autoLogoutStayBtn" class="al-btn-stay">
+          <i class="fas fa-check-circle"></i> Stay Logged In
+        </button>
+        <a href="{% url 'admin:logout' %}" class="al-btn-logout">
+          <i class="fas fa-sign-out-alt"></i> Logout Now
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auto-logout configuration + script for Admin -->
+<script>
+window.RADOKI_AUTO_LOGOUT = {
+  csrfToken:      "{{ csrf_token }}",
+  logoutUrl:      "{% url 'admin:logout' %}",
+  loginUrl:       "{% url 'admin:login' %}",
+  keepAliveUrl:   "{% url 'accounts:keep_alive' %}",
+  timeoutSeconds: 600,
+  warningSeconds: 60,
+  isAdmin: true
+};
+</script>
+<script src="{% static 'js/auto-logout.js' %}"></script>
+{% endblock %}
