@@ -90,6 +90,16 @@
   }
   .student-name { font-weight:600; color:#1e293b; font-size:.875rem; }
   .student-sub  { font-size:.78rem; color:#94a3b8; }
+  .student-info-wrapper {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:flex-start;
+  }
+  .student-info-wrapper .student-name,
+  .student-info-wrapper .student-sub {
+    text-align:left;
+  }
 
   /* Status badges */
   .status-badge { display:inline-block; padding:4px 11px; border-radius:20px; font-size:.73rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
@@ -236,18 +246,16 @@
 
             <!-- Student -->
             <td data-label="Student">
-              <div class="rcp-cell">
-                <div class="d-flex align-items-center gap-2 justify-content-end">
-                  {% if enrollment.student.profile_picture %}
-                    <img src="{{ enrollment.student.profile_picture.url }}"
-                         alt="" class="avatar" style="object-fit:cover;">
-                  {% else %}
-                    <div class="avatar"><i class="fas fa-user"></i></div>
-                  {% endif %}
-                  <div>
-                    <div class="student-name">{{ enrollment.student.get_full_name|default:enrollment.student.username }}</div>
-                    <div class="student-sub">@{{ enrollment.student.username }}</div>
-                  </div>
+              <div class="student-info-wrapper">
+                {% if enrollment.student.profile_picture %}
+                  <img src="{{ enrollment.student.profile_picture.url }}"
+                       alt="" class="avatar" style="object-fit:cover;">
+                {% else %}
+                  <div class="avatar"><i class="fas fa-user"></i></div>
+                {% endif %}
+                <div>
+                  <div class="student-name">{{ enrollment.student.get_full_name|default:enrollment.student.username }}</div>
+                  <div class="student-sub">@{{ enrollment.student.username }}</div>
                 </div>
               </div>
             </td>
