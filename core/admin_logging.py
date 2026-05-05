@@ -67,7 +67,7 @@ def log_bulk_action(admin_instance, action_name, queryset, request):
         print(f"Error logging bulk action: {e}")
 
 
-def log_model_change(obj, admin_user, action='update', changes=None, request=None):
+def log_model_change(obj, admin_user, action='update', changes=None, request=None, description=None):
     """
     Log individual model changes
     
@@ -77,7 +77,11 @@ def log_model_change(obj, admin_user, action='update', changes=None, request=Non
         action: Type of action (create, update, delete)
         changes: Dict with before/after values
         request: Optional request object
+        description: Optional custom description for the log entry
     """
+    if description is None:
+        description = f"{action.title()} {obj._meta.verbose_name}: {str(obj)}"
+
     try:
         AdminActivityLog.log_action(
             admin_user=admin_user,
@@ -86,7 +90,7 @@ def log_model_change(obj, admin_user, action='update', changes=None, request=Non
             object_id=obj.pk,
             object_name=str(obj),
             changes=changes,
-            description=f"{action.title()} {obj._meta.verbose_name}: {str(obj)}",
+            description=description,
             request=request
         )
     except Exception as e:
