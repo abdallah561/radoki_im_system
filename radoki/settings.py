@@ -257,12 +257,12 @@ if not IS_PRODUCTION:
 else:
     # Production - use SMTP with environment variables
     EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-    EMAIL_HOST = env('EMAIL_HOST', default='smtp.resend.com')
-    EMAIL_PORT = env('EMAIL_PORT', default=587)
-    EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@localhost')
+    EMAIL_HOST = env('SMTP_HOST', default=env('EMAIL_HOST', default='smtp.resend.com'))
+    EMAIL_PORT = env('SMTP_PORT', default=env('EMAIL_PORT', default=587))
+    EMAIL_USE_TLS = env.bool('SMTP_USE_TLS', default=env.bool('EMAIL_USE_TLS', default=True))
+    EMAIL_HOST_USER = env('SMTP_USER', default=env('EMAIL_HOST_USER', default='resend'))
+    EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default=env('EMAIL_HOST_PASSWORD', default=''))
+    DEFAULT_FROM_EMAIL = env('SMTP_FROM_EMAIL', default=env('DEFAULT_FROM_EMAIL', default='noreply@localhost'))
     print("📧 Using SMTP email backend for production")
 # Logging configuration for production
 LOGGING = {
