@@ -11,6 +11,9 @@ django-crispy-forms==2.5
 crispy-bootstrap5==2025.6
 pillow==12.1.0
 
+# Email & External Services
+resend==1.4.0
+
 # Utilities
 django-mathfilters==1.0.0
 reportlab==4.4.9

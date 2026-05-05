@@ -252,26 +252,31 @@ IS_PRODUCTION = bool(
 if not IS_PRODUCTION:
     # Local development - emails go to console
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    EMAIL_HOST = 'localhost'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = ''
-    EMAIL_HOST_PASSWORD = ''
     DEFAULT_FROM_EMAIL = 'test@localhost'
-    print("📧 Using CONSOLE email backend for local development")
+    print("[EMAIL] Using CONSOLE email backend for local development")
 else:
-    # Production - use SMTP with environment variables
-    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-    EMAIL_HOST = env('SMTP_HOST', default=env('EMAIL_HOST', default='smtp.resend.com'))
-    EMAIL_PORT = env('SMTP_PORT', default=env('EMAIL_PORT', default=587))
-    EMAIL_USE_TLS = env.bool('SMTP_USE_TLS', default=env.bool('EMAIL_USE_TLS', default=True))
-    EMAIL_USE_SSL = env.bool('SMTP_USE_SSL', default=False)
-    EMAIL_TIMEOUT = env.int('SMTP_TIMEOUT', default=10)
-    EMAIL_HOST_USER = env('SMTP_USER', default=env('EMAIL_HOST_USER', default='resend'))
-    EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default=env('EMAIL_HOST_PASSWORD', default=''))
-    DEFAULT_FROM_EMAIL = env('SMTP_FROM_EMAIL', default=env('DEFAULT_FROM_EMAIL', default='noreply@localhost'))
-    print(f"📧 Using SMTP email backend for production: host={EMAIL_HOST} port={EMAIL_PORT} tls={EMAIL_USE_TLS} ssl={EMAIL_USE_SSL} timeout={EMAIL_TIMEOUT}s")
-    print("📧 Using SMTP email backend for production")
+    # Production - use Resend HTTP API (most reliable on Render)
+    email_backend = env('EMAIL_BACKEND', default='core.email_backends.ResendEmailBackend')
+    
+    if email_backend == 'core.email_backends.ResendEmailBackend':
+        # Resend HTTP API (recommended for Render - no SMTP timeouts)
+        EMAIL_BACKEND = 'core.email_backends.ResendEmailBackend'
+        RESEND_API_KEY = env('RESEND_API_KEY', default='')
+        DEFAULT_FROM_EMAIL = env('RESEND_FROM_EMAIL', default=env('DEFAULT_FROM_EMAIL', default='noreply@localhost'))
+        print(f"[EMAIL] Using Resend HTTP API backend for production (from_email={DEFAULT_FROM_EMAIL})")
+    else:
+        # Fallback to SMTP if explicitly configured
+        EMAIL_BACKEND = email_backend
+        EMAIL_HOST = env('SMTP_HOST', default='smtp.resend.com')
+        EMAIL_PORT = env('SMTP_PORT', default=587)
+        EMAIL_USE_TLS = env.bool('SMTP_USE_TLS', default=True)
+        EMAIL_USE_SSL = env.bool('SMTP_USE_SSL', default=False)
+        EMAIL_TIMEOUT = env.int('SMTP_TIMEOUT', default=10)
+        EMAIL_HOST_USER = env('SMTP_USER', default='resend')
+        EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default='')
+        DEFAULT_FROM_EMAIL = env('SMTP_FROM_EMAIL', default=env('DEFAULT_FROM_EMAIL', default='noreply@localhost'))
+        print(f"[EMAIL] Using SMTP email backend for production: host={EMAIL_HOST} port={EMAIL_PORT}")
+
 # Logging configuration for production
 LOGGING = {
     'version': 1,
