@@ -258,7 +258,7 @@ class UserAdmin(AdminLoggingMixin, BaseUserAdmin):
     @admin.action(description="Export selected users to CSV")
     def export_as_csv(self, request, queryset):
         meta = self.model._meta
-        field_names = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff', 'date_joined']
+        field_names = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff', 'date_joined', 'phone_number', 'age', 'sex', 'region', 'country', 'professional_qualification']
         
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename=users_export_{timezone.now().strftime("%Y%m%d")}.csv'
