@@ -128,8 +128,13 @@ WSGI_APPLICATION = 'radoki.wsgi.application'
 # Development: Use SQLite or local PostgreSQL
 if 'DATABASE_URL' in os.environ and os.environ.get('DATABASE_URL'):
     # Production database (Neon, RDS, etc.)
+    db_config = env.db('DATABASE_URL')
+    if db_config.get('ENGINE') == 'django.db.backends.postgresql':
+        db_config.setdefault('OPTIONS', {})
+        db_config['OPTIONS'].setdefault('sslmode', env('DATABASE_SSL_MODE', default='require'))
+        db_config.setdefault('CONN_MAX_AGE', 600)
     DATABASES = {
-        'default': env.db('DATABASE_URL')
+        'default': db_config
     }
 else:
     # Development fallback - SQLite
