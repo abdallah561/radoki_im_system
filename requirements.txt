@@ -12,7 +12,7 @@ crispy-bootstrap5==2025.6
 pillow==12.1.0
 
 # Email & External Services
-resend==1.4.0
+resend==2.30.0
 
 # Utilities
 django-mathfilters==1.0.0
