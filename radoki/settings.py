@@ -265,9 +265,12 @@ else:
     EMAIL_HOST = env('SMTP_HOST', default=env('EMAIL_HOST', default='smtp.resend.com'))
     EMAIL_PORT = env('SMTP_PORT', default=env('EMAIL_PORT', default=587))
     EMAIL_USE_TLS = env.bool('SMTP_USE_TLS', default=env.bool('EMAIL_USE_TLS', default=True))
+    EMAIL_USE_SSL = env.bool('SMTP_USE_SSL', default=False)
+    EMAIL_TIMEOUT = env.int('SMTP_TIMEOUT', default=10)
     EMAIL_HOST_USER = env('SMTP_USER', default=env('EMAIL_HOST_USER', default='resend'))
     EMAIL_HOST_PASSWORD = env('SMTP_PASSWORD', default=env('EMAIL_HOST_PASSWORD', default=''))
     DEFAULT_FROM_EMAIL = env('SMTP_FROM_EMAIL', default=env('DEFAULT_FROM_EMAIL', default='noreply@localhost'))
+    print(f"📧 Using SMTP email backend for production: host={EMAIL_HOST} port={EMAIL_PORT} tls={EMAIL_USE_TLS} ssl={EMAIL_USE_SSL} timeout={EMAIL_TIMEOUT}s")
     print("📧 Using SMTP email backend for production")
 # Logging configuration for production
 LOGGING = {
