@@ -1,6 +1,36 @@
+import logging
+
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm as DjangoPasswordResetForm
 from .models import User
+
+logger = logging.getLogger(__name__)
+
+class PasswordResetForm(DjangoPasswordResetForm):
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        try:
+            return super().send_mail(
+                subject_template_name,
+                email_template_name,
+                context,
+                from_email,
+                to_email,
+                html_email_template_name=html_email_template_name,
+            )
+        except Exception as e:
+            logger.error(
+                f"Password reset email send failed for {to_email}: {e}",
+                exc_info=True,
+            )
+            raise
 
 class RegisterForm(forms.ModelForm):
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput(
