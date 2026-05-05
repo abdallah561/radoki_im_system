@@ -18,7 +18,7 @@ urlpatterns = [
     path('preview-email/', views.preview_password_reset_email, name='preview_email'),
 
     # Password reset URLs
-    path('password_reset/', auth_views.PasswordResetView.as_view(
+    path('password_reset/', views.LoggedPasswordResetView.as_view(
         template_name='accounts/password_reset.html',
         email_template_name='accounts/password_reset_email.txt',        # plain text fallback
         html_email_template_name='accounts/password_reset_email.html',  # styled HTML version

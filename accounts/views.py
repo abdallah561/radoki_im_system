@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.views import PasswordResetView
 from django.template.loader import render_to_string
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
@@ -9,6 +10,23 @@ from .forms import RegisterForm, ProfileUpdateForm
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class LoggedPasswordResetView(PasswordResetView):
+    """Password reset view that logs failures to the application log."""
+
+    def form_valid(self, form):
+        try:
+            response = super().form_valid(form)
+            logger.info(f"Password reset email queued for {form.cleaned_data.get('email')}")
+            return response
+        except Exception as e:
+            logger.error(
+                f"Password reset email send failed for {form.cleaned_data.get('email')}: {e}",
+                exc_info=True
+            )
+            form.add_error(None, 'We could not send the password reset email right now. Please try again later.')
+            return self.form_invalid(form)
 
 
 def register_view(request):
