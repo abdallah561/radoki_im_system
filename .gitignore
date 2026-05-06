@@ -49,6 +49,10 @@ MANIFEST
 media/
 staticfiles/
 
+# R2 Configuration (local development only)
+R2_*.md
+verify_r2_config.py
+
 # Local development test scripts and guides
 test_email_system.py
 test_local_emails.py
