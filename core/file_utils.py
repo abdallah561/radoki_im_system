@@ -24,6 +24,7 @@ def get_file_url(file_field, force_download=False, filename=None):
     can download the file directly from the storage endpoint.
     """
     if not file_field or not file_field.name:
+        logger.warning('Attempted to get URL for an invalid or empty file field.')
         return None
 
     try:
@@ -40,8 +41,11 @@ def get_file_url(file_field, force_download=False, filename=None):
             file_url = f'{file_url}{separator}response-content-disposition=attachment;filename="{filename}"'
 
         return file_url
-    except Exception as e:
-        logger.warning(f'Could not get URL for file {getattr(file_field, "name", "")}: {str(e)}')
+    except Exception as exc:
+        logger.error(
+            f'Could not get URL for file {getattr(file_field, "name", "")} : {str(exc)}',
+            exc_info=True,
+        )
         return None
 
 
@@ -53,23 +57,45 @@ def serve_file_response(file_field, force_download=False, filename=None):
     it through Django.
     """
     if not file_field or not file_field.name:
+        logger.error('Attempted to serve an invalid or empty file field.')
         raise ValueError('File field is empty or invalid')
 
-    if not default_storage.exists(file_field.name):
-        logger.warning(f'File does not exist: {file_field.name}')
-        raise FileNotFoundError(f'File not found: {file_field.name}. It may have been deleted or moved from storage.')
+    try:
+        exists = default_storage.exists(file_field.name)
+    except Exception as exc:
+        logger.error(
+            f'Error checking file existence for {file_field.name}: {str(exc)}',
+            exc_info=True,
+        )
+        raise
+
+    if not exists:
+        logger.warning(f'File does not exist in storage: {file_field.name}')
+        raise FileNotFoundError(
+            f'File not found: {file_field.name}. It may have been deleted or moved from storage.'
+        )
 
     file_url = get_file_url(file_field, force_download=force_download, filename=filename)
     if file_url:
         logger.info(f'Redirecting to storage URL for file: {file_field.name}')
         return redirect(file_url)
 
-    logger.debug(f'Falling back to local content delivery for file: {file_field.name}')
+    logger.warning(
+        f'Unable to generate direct storage URL for file {file_field.name}; falling back to server-side delivery.'
+    )
 
-    with file_field.open('rb') as file_obj:
-        file_content = file_obj.read()
+    try:
+        with file_field.open('rb') as file_obj:
+            file_content = file_obj.read()
+    except Exception as exc:
+        logger.error(
+            f'Error reading file content from {file_field.name}: {str(exc)}',
+            exc_info=True,
+        )
+        raise
 
     if file_content is None:
+        logger.error(f'File {file_field.name} returned no content when opened.')
         raise ValueError(f'Could not read file content from {file_field.name}')
 
     content_type, _ = mimetypes.guess_type(file_field.name)
@@ -93,10 +119,14 @@ def file_exists(file_field):
     Check if a file exists in storage.
     """
     if not file_field or not file_field.name:
+        logger.warning('Attempted to check existence for an invalid or empty file field.')
         return False
 
     try:
         return default_storage.exists(file_field.name)
-    except Exception as e:
-        logger.warning(f'Could not check if file exists {getattr(file_field, "name", "")}: {str(e)}')
+    except Exception as exc:
+        logger.error(
+            f'Could not check if file exists {getattr(file_field, "name", "")} : {str(exc)}',
+            exc_info=True,
+        )
         return False
