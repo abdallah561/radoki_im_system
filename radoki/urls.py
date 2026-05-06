@@ -72,13 +72,13 @@ urlpatterns = [
     path('redirect-after-login/', account_views.role_based_redirect, name='role_based_redirect'),
 ]
 
-# Static and media files (development only)
+# Static files (development only)
+# Media files are served exclusively from Cloudflare R2 - no local serving
 from django.conf import settings
 from django.conf.urls.static import static
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Custom error handlers
 handler403 = custom_permission_denied

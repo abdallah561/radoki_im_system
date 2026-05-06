@@ -145,49 +145,38 @@ else:
         }
     }
 
-# Cloudflare R2 Configuration for Media Files
-# The application uses Cloudflare R2 exclusively for uploaded media when configured.
-CLOUDFLARE_R2_ACCESS_KEY_ID = env('CLOUDFLARE_R2_ACCESS_KEY_ID', default='')
-CLOUDFLARE_R2_SECRET_ACCESS_KEY = env('CLOUDFLARE_R2_SECRET_ACCESS_KEY', default='')
-CLOUDFLARE_R2_BUCKET_NAME = env('CLOUDFLARE_R2_BUCKET_NAME', default='')
-CLOUDFLARE_R2_ACCOUNT_ID = env('CLOUDFLARE_R2_ACCOUNT_ID', default='')
-CLOUDFLARE_R2_CUSTOM_DOMAIN = env('CLOUDFLARE_R2_CUSTOM_DOMAIN', default='')
+# Cloudflare R2 Storage Configuration
+# All media files are stored exclusively in Cloudflare R2
+# R2 is required - no local storage fallback
 
-if (
-    CLOUDFLARE_R2_ACCESS_KEY_ID and
-    CLOUDFLARE_R2_SECRET_ACCESS_KEY and
-    CLOUDFLARE_R2_BUCKET_NAME and
-    CLOUDFLARE_R2_ACCOUNT_ID
-):
-    DEFAULT_FILE_STORAGE = 'core.storage.CloudflareR2Storage'
-    AWS_ACCESS_KEY_ID = CLOUDFLARE_R2_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY = CLOUDFLARE_R2_SECRET_ACCESS_KEY
-    AWS_STORAGE_BUCKET_NAME = CLOUDFLARE_R2_BUCKET_NAME
-    AWS_S3_ENDPOINT_URL = env(
-        'CLOUDFLARE_R2_ENDPOINT_URL',
-        default=f'https://{CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com'
-    )
-    AWS_S3_REGION_NAME = env('CLOUDFLARE_R2_REGION', default='auto')
-    AWS_S3_CUSTOM_DOMAIN = CLOUDFLARE_R2_CUSTOM_DOMAIN or f'{AWS_STORAGE_BUCKET_NAME}.{CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com'
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=31536000, public',
-    }
-    AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_QUERYSTRING_AUTH = False
-    AWS_DEFAULT_ACL = None
-    AWS_S3_FILE_OVERWRITE = False
+AWS_STORAGE_BUCKET_NAME = env('CLOUDFLARE_R2_BUCKET_NAME', default='')
+AWS_S3_REGION_NAME = 'auto'
+AWS_S3_ENDPOINT_URL = env('CLOUDFLARE_R2_ENDPOINT_URL', default='')
+AWS_ACCESS_KEY_ID = env('CLOUDFLARE_R2_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('CLOUDFLARE_R2_SECRET_ACCESS_KEY', default='')
+AWS_S3_CUSTOM_DOMAIN = env('CLOUDFLARE_R2_CUSTOM_DOMAIN', default='')
 
-    MEDIA_URL = env('MEDIA_URL', default=f'https://{AWS_S3_CUSTOM_DOMAIN}/')
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-elif DEBUG:
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-else:
+# Validate R2 configuration
+if not all([AWS_STORAGE_BUCKET_NAME, AWS_S3_ENDPOINT_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]):
     raise RuntimeError(
-        'Cloudflare R2 storage is required in production. '
-        'Set CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY, '
-        'CLOUDFLARE_R2_BUCKET_NAME and CLOUDFLARE_R2_ACCOUNT_ID.'
+        'Cloudflare R2 storage is required and cannot be omitted. '
+        'Set these environment variables:\n'
+        '  - CLOUDFLARE_R2_BUCKET_NAME\n'
+        '  - CLOUDFLARE_R2_ENDPOINT_URL\n'
+        '  - CLOUDFLARE_R2_ACCESS_KEY_ID\n'
+        '  - CLOUDFLARE_R2_SECRET_ACCESS_KEY'
     )
+
+# Use Cloudflare R2 for all file storage
+DEFAULT_FILE_STORAGE = 'core.storage.CloudflareR2Storage'
+
+# R2 URL configuration
+if AWS_S3_CUSTOM_DOMAIN:
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+else:
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL.rstrip("/")}/{AWS_STORAGE_BUCKET_NAME}/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Not used with R2, but required for Django
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
