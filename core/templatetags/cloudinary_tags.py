@@ -1,61 +1,48 @@
 """
-Template filters and tags for proper Cloudinary URL handling.
+Template filters and tags for proper storage URL handling.
+
+Storage-agnostic filters that work with any Django storage backend (S3, R2, Local, etc.).
 """
 from django import template
-from django.conf import settings
 import os
+import logging
 
 register = template.Library()
+logger = logging.getLogger(__name__)
 
 
 @register.filter
-def cloudinary_file_url(file_field):
+def storage_file_url(file_field):
     """
-    Generate a correct Cloudinary URL for any file type (images, PDFs, documents, etc.).
+    Generate the correct URL for any file type from any storage backend.
     
-    Handles:
-    - Images: uses /image/upload/ delivery
-    - PDFs and Documents: uses /raw/upload/ delivery for proper content-type serving
-    - Other files: uses standard Cloudinary URL
+    This filter is storage-agnostic and handles:
+    - Images from any storage backend (local, S3, R2, Cloudinary, etc.)
+    - PDFs and documents from any storage backend
+    - Automatically gets the correct URL from the storage backend's url() method
     
-    Falls back to .url property if something goes wrong.
+    Falls back gracefully if file doesn't exist or is empty.
     """
     if not file_field or not file_field.name:
         return ''
     
     try:
-        # Try to use the file field's URL first (handles all storage backends)
+        # Use the file field's URL method which respects the storage backend
         url = file_field.url
         
-        # If it's a Cloudinary URL and it's a document, adjust it to use proper delivery
-        if url and 'res.cloudinary.com' in url:
-            cloud_name = settings.CLOUDINARY_CLOUD_NAME
-            file_name = file_field.name
-            
-            # Determine file type
-            _, ext = os.path.splitext(file_name)
-            ext = ext.lower()
-            
-            # For PDFs and other documents, ensure we use the correct delivery endpoint
-            if ext in ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.txt', '.rtf']:
-                # The cloudinary_storage should already give us the right URL
-                # But if it doesn't, we can construct it manually
-                public_id = file_name.rsplit('.', 1)[0] if '.' in file_name else file_name
-                
-                # Check if URL already has /raw/ or if it needs it
-                if '/image/upload/' in url:
-                    # Replace /image/upload/ with /raw/upload/ for documents
-                    url = url.replace('/image/upload/', '/raw/upload/')
-                elif '/upload/' in url and '/raw/upload/' not in url:
-                    # Replace /upload/ with /raw/upload/ for documents
-                    url = url.replace('/upload/', '/raw/upload/')
+        # Ensure HTTPS for secure delivery
+        if url and url.startswith('http://'):
+            url = 'https://' + url[7:]
         
         return url
         
     except Exception as e:
-        import logging
-        logging.warning(f"Could not generate Cloudinary URL for {file_field.name}: {str(e)}")
+        logger.warning(f"Could not generate storage URL for {file_field.name}: {str(e)}")
         return ''
+
+
+# Keep the old name as an alias for backward compatibility in templates
+cloudinary_file_url = storage_file_url
 
 
 @register.filter

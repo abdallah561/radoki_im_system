@@ -182,7 +182,7 @@ def reject_receipt(request, payment_id):
 
 @login_required
 def view_receipt(request, payment_id):
-    """Serve a receipt file from Cloudinary or local storage for viewing/download."""
+    """Serve a receipt file from storage for viewing/download."""
     payment = get_object_or_404(Payment, id=payment_id)
     
     # Check permissions: student who uploaded it, or instructor reviewing it
@@ -197,17 +197,12 @@ def view_receipt(request, payment_id):
         messages.error(request, "This payment has no receipt file.")
         return redirect('dashboard:index')
     
-    # For Cloudinary storage, redirect directly to the Cloudinary URL
-    from core.file_utils import _is_using_cloudinary, get_cloudinary_url
-    if _is_using_cloudinary():
-        cloudinary_url = get_cloudinary_url(payment.receipt, force_download=False)
-        if cloudinary_url:
-            from django.shortcuts import redirect
-            return redirect(cloudinary_url)
-    
+    from core.file_utils import get_file_url, serve_file_response
+    file_url = get_file_url(payment.receipt, force_download=False)
+    if file_url:
+        return redirect(file_url)
+
     try:
-        from core.file_utils import serve_file_response
-        # For receipts, serve inline (for viewing) not as attachment
         return serve_file_response(payment.receipt, force_download=False)
     except Exception as e:
         logger.error(f"Error serving receipt {payment_id}: {str(e)}", exc_info=True)

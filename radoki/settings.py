@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     # Third-party
     'crispy_forms',
     'crispy_bootstrap5',
-    'cloudinary_storage',
+    'storages',
     # Local apps
     'accounts',
     'courses',
@@ -145,62 +145,49 @@ else:
         }
     }
 
-# Cloudinary Configuration for Media Files
-# Only configure if Cloudinary credentials are provided
-CLOUDINARY_CLOUD_NAME = env('CLOUDINARY_CLOUD_NAME', default='')
-CLOUDINARY_API_KEY = env('CLOUDINARY_API_KEY', default='')
-CLOUDINARY_API_SECRET = env('CLOUDINARY_API_SECRET', default='')
+# Cloudflare R2 Configuration for Media Files
+# The application uses Cloudflare R2 exclusively for uploaded media when configured.
+CLOUDFLARE_R2_ACCESS_KEY_ID = env('CLOUDFLARE_R2_ACCESS_KEY_ID', default='')
+CLOUDFLARE_R2_SECRET_ACCESS_KEY = env('CLOUDFLARE_R2_SECRET_ACCESS_KEY', default='')
+CLOUDFLARE_R2_BUCKET_NAME = env('CLOUDFLARE_R2_BUCKET_NAME', default='')
+CLOUDFLARE_R2_ACCOUNT_ID = env('CLOUDFLARE_R2_ACCOUNT_ID', default='')
+CLOUDFLARE_R2_CUSTOM_DOMAIN = env('CLOUDFLARE_R2_CUSTOM_DOMAIN', default='')
 
-if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
-    # Production: Use Cloudinary for media files
-    try:
-        import cloudinary
-        import cloudinary.uploader
-        import cloudinary.api
-        import cloudinary_storage  # Ensure cloudinary_storage is imported
+if (
+    CLOUDFLARE_R2_ACCESS_KEY_ID and
+    CLOUDFLARE_R2_SECRET_ACCESS_KEY and
+    CLOUDFLARE_R2_BUCKET_NAME and
+    CLOUDFLARE_R2_ACCOUNT_ID
+):
+    DEFAULT_FILE_STORAGE = 'core.storage.CloudflareR2Storage'
+    AWS_ACCESS_KEY_ID = CLOUDFLARE_R2_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = CLOUDFLARE_R2_SECRET_ACCESS_KEY
+    AWS_STORAGE_BUCKET_NAME = CLOUDFLARE_R2_BUCKET_NAME
+    AWS_S3_ENDPOINT_URL = env(
+        'CLOUDFLARE_R2_ENDPOINT_URL',
+        default=f'https://{CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com'
+    )
+    AWS_S3_REGION_NAME = env('CLOUDFLARE_R2_REGION', default='auto')
+    AWS_S3_CUSTOM_DOMAIN = CLOUDFLARE_R2_CUSTOM_DOMAIN or f'{AWS_STORAGE_BUCKET_NAME}.{CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com'
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=31536000, public',
+    }
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_QUERYSTRING_AUTH = False
+    AWS_DEFAULT_ACL = None
+    AWS_S3_FILE_OVERWRITE = False
 
-        # Set CLOUDINARY_URL environment variable for cloudinary_storage
-        os.environ.setdefault(
-            'CLOUDINARY_URL',
-            f'cloudinary://{CLOUDINARY_API_KEY}:{CLOUDINARY_API_SECRET}@{CLOUDINARY_CLOUD_NAME}'
-        )
-
-        cloudinary.config(
-            cloud_name=CLOUDINARY_CLOUD_NAME,
-            api_key=CLOUDINARY_API_KEY,
-            api_secret=CLOUDINARY_API_SECRET,
-            secure=True,  # Always use HTTPS for Cloudinary URLs
-        )
-
-        # Use Cloudinary for media storage
-        DEFAULT_FILE_STORAGE = 'core.storage.CloudinaryMediaStorage'
-        CLOUDINARY_STORAGE = {
-            'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-            'API_KEY': CLOUDINARY_API_KEY,
-            'API_SECRET': CLOUDINARY_API_SECRET,
-            'FOLDER': 'radoki_media',  # All files organized under this folder
-            'RESOURCE_TYPE': 'auto',  # Automatically determine resource type (images, pdfs, docs, etc.)
-            'USE_FILENAME': True,  # Use original filename
-            'UNIQUE_FILENAME': True,  # Ensure unique filenames
-            'TYPE': 'upload',  # Use upload type for persistent storage (not staging)
-            'SECURE': True,  # Always use HTTPS
-        }
-        # MEDIA_URL for Cloudinary - points to raw/upload endpoint for all file types
-        # Files are automatically routed to /image/upload/ for images and /raw/upload/ for documents
-        # The actual endpoint is determined by Cloudinary based on RESOURCE_TYPE: 'auto'
-        # Folder path: https://res.cloudinary.com/{CLOUD_NAME}/raw/upload/radoki_media/...
-        MEDIA_URL = f'https://res.cloudinary.com/{CLOUDINARY_CLOUD_NAME}/raw/upload/radoki_media/'
-        # Note: MEDIA_ROOT is not used with Cloudinary storage, but kept for compatibility
-        MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    except ImportError:
-        # Fallback if cloudinary is not installed
-        print("Warning: Cloudinary packages not installed. Using local media storage.")
-        MEDIA_URL = '/media/'
-        MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-else:
-    # Development: Use local media storage
+    MEDIA_URL = env('MEDIA_URL', default=f'https://{AWS_S3_CUSTOM_DOMAIN}/')
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+elif DEBUG:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+else:
+    raise RuntimeError(
+        'Cloudflare R2 storage is required in production. '
+        'Set CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY, '
+        'CLOUDFLARE_R2_BUCKET_NAME and CLOUDFLARE_R2_ACCOUNT_ID.'
+    )
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
