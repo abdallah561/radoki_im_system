@@ -35,7 +35,7 @@ if not DEBUG:
 
 ALLOWED_HOSTS = env.list(
     'ALLOWED_HOSTS',
-    default=['localhost', '127.0.0.1', 'radoki-im-system.onrender.com']
+    default=['localhost', '127.0.0.1', 'radoki-im-system.onrender.com', 'radokistatisticssolutions.com']
 )
 
 # CSRF trusted origins for development and production
@@ -46,6 +46,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
         'http://localhost:8000',
         'https://localhost:8000',
         'https://radoki-im-system.onrender.com',
+        'https://radokistatisticssolutions.com',
         'https://*.ngrok-free.dev',
         'https://*.ngrok.app',
     ]
