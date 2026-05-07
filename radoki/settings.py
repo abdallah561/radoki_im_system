@@ -155,6 +155,11 @@ AWS_S3_ENDPOINT_URL = env('CLOUDFLARE_R2_ENDPOINT_URL', default='')
 AWS_ACCESS_KEY_ID = env('CLOUDFLARE_R2_ACCESS_KEY_ID', default='')
 AWS_SECRET_ACCESS_KEY = env('CLOUDFLARE_R2_SECRET_ACCESS_KEY', default='')
 AWS_S3_CUSTOM_DOMAIN = env('CLOUDFLARE_R2_CUSTOM_DOMAIN', default='')
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_S3_ADDRESSING_STYLE = 'path'
+AWS_QUERYSTRING_AUTH = env.bool('CLOUDFLARE_R2_QUERYSTRING_AUTH', default=True)
+AWS_DEFAULT_ACL = None
+AWS_S3_FILE_OVERWRITE = False
 
 # Validate R2 configuration
 if not all([AWS_STORAGE_BUCKET_NAME, AWS_S3_ENDPOINT_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]):
@@ -201,6 +206,15 @@ STATICFILES_STORAGE = env(
     default='whitenoise.storage.CompressedManifestStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 )
 
+STORAGES = {
+    'default': {
+        'BACKEND': 'core.storage.CloudflareR2Storage',
+    },
+    'staticfiles': {
+        'BACKEND': STATICFILES_STORAGE,
+    },
+}
+
 LOGIN_REDIRECT_URL = '/redirect-after-login/'
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -222,7 +236,7 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from accessing session cook
 IS_PRODUCTION = bool(
     os.environ.get('RENDER') or  # Render deployment
     os.environ.get('PRODUCTION') or  # Explicit production flag
-    (os.environ.get('DATABASE_URL') and not os.environ.get('LOCAL_DEV'))  # Has DB URL but not local dev flag
+    (os.environ.get('DATABASE_URL') and os.environ.get('LOCAL_DEV') != 'True')  # Has DB URL and LOCAL_DEV is not True
 )
 
 if not IS_PRODUCTION:

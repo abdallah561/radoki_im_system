@@ -8,9 +8,14 @@ import os
 import logging
 import mimetypes
 from django.conf import settings
-from django.http import HttpResponse, FileNotFoundError
+from django.http import HttpResponse, FileResponse
 from django.core.files.storage import default_storage
 from django.shortcuts import redirect
+
+try:
+    from core.storage import CloudflareR2Storage
+except ImportError:
+    CloudflareR2Storage = None
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +33,27 @@ def get_file_url(file_field, force_download=False, filename=None):
         return None
 
     try:
-        file_url = file_field.url
+        if force_download:
+            # Cloudflare R2 does not reliably support presigned URLs with
+            # response-content-disposition query parameters, so fall back to
+            # server-side download for R2 storage.
+            if CloudflareR2Storage is not None and isinstance(default_storage, CloudflareR2Storage):
+                logger.debug('Force-download URL for Cloudflare R2 is disabled; using server-side download.')
+                return None
+
+            filename = filename or os.path.basename(file_field.name)
+            parameters = {
+                'ResponseContentDisposition': f'attachment;filename="{filename}"'
+            }
+            file_url = default_storage.url(file_field.name, parameters=parameters)
+        else:
+            file_url = file_field.url
+
         if not file_url:
             return None
 
         if file_url.startswith('http://'):
             file_url = 'https://' + file_url[7:]
-
-        if force_download:
-            filename = filename or os.path.basename(file_field.name)
-            separator = '&' if '?' in file_url else '?'
-            file_url = f'{file_url}{separator}response-content-disposition=attachment;filename="{filename}"'
 
         return file_url
     except Exception as exc:
@@ -49,12 +64,12 @@ def get_file_url(file_field, force_download=False, filename=None):
         return None
 
 
-def serve_file_response(file_field, force_download=False, filename=None):
+def serve_file_response(file_field, force_download=False, filename=None, prefer_direct_url=True):
     """
     Serve a file by redirecting to its storage URL when available.
 
-    If direct storage access is not available, falls back to reading the file and sending
-    it through Django.
+    If direct storage access is not available or if direct URLs are disabled,
+    falls back to reading the file and sending it through Django.
     """
     if not file_field or not file_field.name:
         logger.error('Attempted to serve an invalid or empty file field.')
@@ -75,38 +90,35 @@ def serve_file_response(file_field, force_download=False, filename=None):
             f'File not found: {file_field.name}. It may have been deleted or moved from storage.'
         )
 
-    file_url = get_file_url(file_field, force_download=force_download, filename=filename)
-    if file_url:
-        logger.info(f'Redirecting to storage URL for file: {file_field.name}')
-        return redirect(file_url)
+    if prefer_direct_url:
+        file_url = get_file_url(file_field, force_download=force_download, filename=filename)
+        if file_url:
+            logger.info(f'Redirecting to storage URL for file: {file_field.name}')
+            return redirect(file_url)
 
     logger.warning(
         f'Unable to generate direct storage URL for file {file_field.name}; falling back to server-side delivery.'
     )
 
     try:
-        with file_field.open('rb') as file_obj:
-            file_content = file_obj.read()
+        file_obj = file_field.open('rb')
     except Exception as exc:
         logger.error(
-            f'Error reading file content from {file_field.name}: {str(exc)}',
+            f'Error opening file content from {file_field.name}: {str(exc)}',
             exc_info=True,
         )
         raise
-
-    if file_content is None:
-        logger.error(f'File {file_field.name} returned no content when opened.')
-        raise ValueError(f'Could not read file content from {file_field.name}')
 
     content_type, _ = mimetypes.guess_type(file_field.name)
     if content_type is None:
         content_type = 'application/octet-stream'
 
-    response = HttpResponse(file_content, content_type=content_type)
+    response = FileResponse(file_obj, content_type=content_type)
     download_name = filename or os.path.basename(file_field.name)
     disposition_type = 'attachment' if force_download else 'inline'
     response['Content-Disposition'] = f'{disposition_type}; filename="{download_name}"'
-    response['Content-Length'] = len(file_content)
+    if getattr(file_field, 'size', None) is not None:
+        response['Content-Length'] = str(file_field.size)
 
     if not force_download:
         response['Cache-Control'] = 'public, max-age=2592000, immutable'

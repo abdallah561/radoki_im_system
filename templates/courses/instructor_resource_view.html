@@ -48,7 +48,7 @@
                     </span>
                 </td>
                 <td>
-                    <a href="{% url 'courses:preview_resource' resource.id %}" target="_blank" class="btn btn-primary btn-sm">Preview</a>
+                    <a href="{% url 'courses:preview_resource' resource.id %}" class="btn btn-primary btn-sm">Preview</a>
                     <a href="{% url 'courses:download_resource' resource.id %}" class="btn btn-success btn-sm">Download</a>
                     <a href="{% url 'courses:toggle_resource_download' resource.id %}" class="btn btn-warning btn-sm">
                         {% if resource.download_allowed %}

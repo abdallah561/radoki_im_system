@@ -416,7 +416,8 @@ def track_submission_grading(sender, instance, **kwargs):
     if instance.pk:
         try:
             old = sender.objects.get(pk=instance.pk)
-            _submission_prev_grading[instance.pk] = (old.is_graded, old.grade)
+            old_is_graded = getattr(old, 'is_graded', old.status == 'graded')
+            _submission_prev_grading[instance.pk] = (old_is_graded, getattr(old, 'grade', None))
         except sender.DoesNotExist:
             _submission_prev_grading[instance.pk] = (False, None)
 
@@ -427,8 +428,9 @@ def on_submission_graded(sender, instance, created, **kwargs):
         return
     try:
         prev_graded, prev_grade = _submission_prev_grading.pop(instance.pk, (False, None))
+        current_is_graded = getattr(instance, 'is_graded', instance.status == 'graded')
         # When submission is graded for the first time
-        if not prev_graded and instance.is_graded:
+        if not prev_graded and current_is_graded:
             student = instance.student
             assignment_title = instance.assignment.title
             course_title = instance.assignment.course.title

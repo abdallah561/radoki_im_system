@@ -65,6 +65,93 @@
     .p-4, .p-5 {
       padding: 0.5rem !important;
     }
+
+    /* Horizontally Scrollable Resources Table */
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0;
+      padding: 0;
+    }
+
+    .table-responsive .table {
+      font-size: 0.9rem;
+      margin-bottom: 0;
+      min-width: 600px;
+      width: 100%;
+    }
+
+    .table-responsive .table thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #2c3e50;
+      color: white;
+    }
+
+    .table-responsive .table thead th {
+      padding: 10px 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      border-bottom: 2px solid #1a252f;
+    }
+
+    .table-responsive .table tbody td {
+      padding: 8px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .table-responsive .table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .table-responsive .table tbody td:nth-child(4) {
+      white-space: normal;
+    }
+
+    .table-responsive .table tbody td:nth-child(4) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .table-responsive .table .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+
+    /* Scrollbar Styling */
+    .table-responsive::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+      background: #2980b9;
+      border-radius: 3px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+      background: #1a5276;
+    }
+
+    /* Indicate scrollable content */
+    .table-responsive::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 20px;
+      height: 100%;
+      background: linear-gradient(to left, rgba(41, 128, 185, 0.1), transparent);
+      pointer-events: none;
+    }
   }
 </style>
 
@@ -566,7 +653,7 @@
                     <td><i class="fas fa-file-alt"></i> {{ resource.title }}</td>
                     <td style="font-size: 12px; color: #7f8c8d;">{{ resource.uploaded_at|date:"M d, Y" }}</td>
                     <td style="text-align: center;">
-                      <a href="{% url 'courses:preview_resource' resource.id %}" target="_blank" class="btn btn-sm btn-primary" title="Preview">
+                      <a href="{% url 'courses:preview_resource' resource.id %}" class="btn btn-sm btn-primary" title="Preview">
                         <i class="fas fa-eye"></i>
                       </a>
                       {% if resource.download_allowed %}
@@ -845,7 +932,7 @@
                     <td style="font-size: 12px;">{{ resource.course.instructor.get_full_name }}</td>
                     <td style="font-size: 12px; color: #7f8c8d; white-space: nowrap;">{{ resource.uploaded_at|date:"M d, Y" }}</td>
                     <td style="text-align: center;">
-                      <a href="{% url 'courses:preview_resource' resource.id %}" target="_blank" class="btn btn-sm btn-primary" title="Preview">
+                      <a href="{% url 'courses:preview_resource' resource.id %}" class="btn btn-sm btn-primary" title="Preview">
                         <i class="fas fa-eye"></i>
                       </a>
                       <a href="{% url 'courses:download_resource' resource.id %}" class="btn btn-sm btn-success" title="Download">

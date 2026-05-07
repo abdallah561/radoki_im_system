@@ -26,6 +26,7 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
     querystring_auth = False
     object_parameters = {'CacheControl': 'max-age=31536000, public'}
     signature_version = 's3v4'
+    location = ''  # Don't include bucket name in object path
 
     def __init__(self, *args, **kwargs):
         if not STORAGE_AVAILABLE:
@@ -34,9 +35,13 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
                 'Install it with: pip install django-storages[boto3]'
             )
 
+        custom_domain = getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None) or None
+        self.querystring_auth = getattr(settings, 'AWS_QUERYSTRING_AUTH', self.querystring_auth)
+
         kwargs.setdefault('bucket_name', getattr(settings, 'AWS_STORAGE_BUCKET_NAME', None))
-        kwargs.setdefault('custom_domain', getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None))
+        kwargs.setdefault('custom_domain', custom_domain)
         kwargs.setdefault('endpoint_url', getattr(settings, 'AWS_S3_ENDPOINT_URL', None))
+        kwargs.setdefault('region_name', getattr(settings, 'AWS_S3_REGION_NAME', None))
         super().__init__(*args, **kwargs)
 
     def _log_storage_error(self, operation, name, exc, extra=None):
@@ -73,9 +78,9 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
             self._log_storage_error('open', name, exc, f'mode={mode}')
             raise
 
-    def url(self, name):
+    def url(self, name, parameters=None, expire=None, http_method=None):
         try:
-            url = super().url(name)
+            url = super().url(name, parameters=parameters, expire=expire, http_method=http_method)
             if url and url.startswith('http://'):
                 url = 'https://' + url[7:]
             return url

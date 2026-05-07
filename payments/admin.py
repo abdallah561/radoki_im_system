@@ -94,7 +94,7 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
     class Media:
         css = {'all': ('admin/css/assignment_admin_colors.css',)}
 
-    list_display = ('student_display', 'course_display', 'amount_display', 'approved_badge', 'overdue_badge', 'receipt_status', 'uploaded_at')
+    list_display = ('student_display', 'course_display', 'amount_display', 'approved_badge', 'overdue_badge', 'receipt_status', 'receipt_link', 'uploaded_at')
     list_filter = (ApprovalStatusFilter, PaymentUploadDateFilter, PaymentCourseFilter, PaymentInstructorFilter)
     search_fields = ('enrollment__student__username', 'enrollment__student__email', 'enrollment__course__title')
     readonly_fields = ('uploaded_at', 'payment_stats', 'deadline_info')
@@ -202,24 +202,55 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
         """Display receipt status"""
         if obj.receipt and obj.receipt.name:
             try:
+                url = obj.receipt.url
                 size = obj.receipt.size / 1024
                 formatted_size = f"{size:.1f}"
                 return format_html(
                     '<span style="color: #27ae60;">✓ Uploaded</span><br/>'
-                    '<span style="color: #7f8c8d; font-size: 0.85rem;">{} KB</span>',
-                    formatted_size
+                    '<span style="color: #7f8c8d; font-size: 0.85rem;">{} KB</span><br/>'
+                    '<a href="{}" target="_blank" rel="noopener noreferrer">View receipt</a>',
+                    formatted_size,
+                    url
                 )
             except (OSError, ValueError):
                 # File doesn't exist or size can't be determined
+                filename = obj.receipt.name.split('/')[-1] if obj.receipt.name else 'Unknown'
                 return format_html(
                     '<span style="color: #f39c12;">⚠ File missing</span><br/>'
                     '<span style="color: #7f8c8d; font-size: 0.85rem;">{}</span>',
-                    obj.receipt.name.split('/')[-1] if obj.receipt.name else 'Unknown'
+                    filename
+                )
+            except Exception:
+                # If URL generation fails, still show upload state without crash
+                formatted_name = obj.receipt.name.split('/')[-1]
+                return format_html(
+                    '<span style="color: #27ae60;">✓ Uploaded</span><br/>'
+                    '<span style="color: #7f8c8d; font-size: 0.85rem;">{}</span>',
+                    formatted_name
                 )
         return format_html(
             '<span style="color: #e74c3c;">✗ No receipt</span>'
         )
     receipt_status.short_description = "Receipt"
+
+    def receipt_link(self, obj):
+        """Show the clickable receipt URL in the list view."""
+        if obj.receipt and obj.receipt.name:
+            try:
+                url = obj.receipt.url
+                return format_html(
+                    '<a href="{}" target="_blank" rel="noopener noreferrer">Open receipt</a>',
+                    url
+                )
+            except Exception:
+                return format_html(
+                    '<span style="color: #f39c12;">URL unavailable</span>'
+                )
+        return format_html(
+            '<span style="color: #e74c3c;">No receipt</span>'
+        )
+    receipt_link.short_description = "Receipt URL"
+    receipt_link.admin_order_field = 'receipt'
     
     def approved_badge(self, obj):
         """Display approval status badge"""

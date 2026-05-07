@@ -2,12 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
+import logging
+
 from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum
 from django.utils import timezone
 from django.core.paginator import Paginator
 from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
 from core.models import AdminAccessControl
+
+logger = logging.getLogger(__name__)
 
 
 def _page_window(page_obj, on_each_side=2, on_ends=1):
@@ -766,12 +770,12 @@ def preview_resource(request, resource_id):
     file_name = resource.file.name
     file_ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
 
-    from core.file_utils import get_file_url
-    file_url = get_file_url(resource.file, force_download=False)
-
-    # Determine preview type for template
-    # Only PDF files can be previewed; all other files show download option
+    # For PDF previews, use a same-origin preview endpoint to avoid CORS and signed URL issues.
     preview_type = 'pdf' if file_ext == 'pdf' else 'download'
+    file_url = None
+    if preview_type == 'pdf':
+        from django.urls import reverse
+        file_url = reverse('courses:serve_file', args=[resource.id])
 
     context = {
         'resource': resource,
@@ -817,12 +821,9 @@ def serve_file(request, resource_id):
             if resource.course.instructor != request.user and not request.user.is_superuser:
                 raise PermissionDenied("🔒 Access Denied: You can only access resources from your own courses.")
 
-        from core.file_utils import get_file_url, serve_file_response
-        file_url = get_file_url(resource.file, force_download=False)
-        if file_url:
-            return redirect(file_url)
+        from core.file_utils import serve_file_response
 
-        response = serve_file_response(resource.file, force_download=False)
+        response = serve_file_response(resource.file, force_download=False, prefer_direct_url=False)
         
         # Override content disposition to inline for preview
         file_name = resource.file.name
