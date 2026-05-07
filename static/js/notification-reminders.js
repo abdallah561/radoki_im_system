@@ -179,7 +179,7 @@ class NotificationReminder {
             try {
                 new Notification(notification.title, {
                     body: notification.message,
-                    icon: '/static/images/icon-notification.png',
+                    icon: '/static/radoki/logo.png',
                     tag: `notif-${notification.id}`,
                     requireInteraction: false,
                 });
