@@ -50,15 +50,21 @@ def get_file_url(file_field, force_download=False, filename=None):
             file_url = file_field.url
 
         if not file_url:
+            logger.error('No URL returned for file %s (force_download=%s)', file_field.name, force_download)
             return None
 
         if file_url.startswith('http://'):
             file_url = 'https://' + file_url[7:]
 
+        logger.debug('Resolved file URL for %s: %s', file_field.name, file_url)
         return file_url
     except Exception as exc:
         logger.error(
-            f'Could not get URL for file {getattr(file_field, "name", "")} : {str(exc)}',
+            'Could not get URL for file %s (force_download=%s, storage=%s): %s',
+            getattr(file_field, 'name', ''),
+            force_download,
+            type(default_storage).__name__,
+            str(exc),
             exc_info=True,
         )
         return None
@@ -93,11 +99,18 @@ def serve_file_response(file_field, force_download=False, filename=None, prefer_
     if prefer_direct_url:
         file_url = get_file_url(file_field, force_download=force_download, filename=filename)
         if file_url:
-            logger.info(f'Redirecting to storage URL for file: {file_field.name}')
+            logger.info('Redirecting to storage URL for file: %s -> %s', file_field.name, file_url)
             return redirect(file_url)
 
+        logger.error(
+            'Failed to generate direct storage URL for file %s (storage=%s); falling back to server-side delivery.',
+            file_field.name,
+            type(default_storage).__name__,
+        )
+
     logger.warning(
-        f'Unable to generate direct storage URL for file {file_field.name}; falling back to server-side delivery.'
+        'Unable to generate direct storage URL for file %s; falling back to server-side delivery.',
+        file_field.name,
     )
 
     try:

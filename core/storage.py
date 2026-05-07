@@ -59,8 +59,11 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
         logger.error(message, exc_info=True)
 
     def save(self, name, content, max_length=None):
+        logger.info('Cloudflare R2 upload starting for %s (max_length=%s)', name, max_length)
         try:
-            return super().save(name, content, max_length=max_length)
+            saved_name = super().save(name, content, max_length=max_length)
+            logger.info('Cloudflare R2 upload succeeded for %s', saved_name)
+            return saved_name
         except Exception as exc:
             self._log_storage_error('save', name, exc, f'max_length={max_length}')
             raise
@@ -94,6 +97,8 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
 
             if not getattr(settings, 'DEBUG', False):
                 logger.debug('Cloudflare R2 URL generated for %s: %s', name, url)
+                if not url:
+                    logger.error('Cloudflare R2 URL generation returned no URL for %s', name)
 
             return url
         except Exception as exc:
