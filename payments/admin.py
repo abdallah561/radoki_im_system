@@ -200,14 +200,22 @@ class PaymentAdmin(AdminLoggingMixin, admin.ModelAdmin):
     
     def receipt_status(self, obj):
         """Display receipt status"""
-        if obj.receipt:
-            size = obj.receipt.size / 1024
-            formatted_size = f"{size:.1f}"
-            return format_html(
-                '<span style="color: #27ae60;">✓ Uploaded</span><br/>'
-                '<span style="color: #7f8c8d; font-size: 0.85rem;">{} KB</span>',
-                formatted_size
-            )
+        if obj.receipt and obj.receipt.name:
+            try:
+                size = obj.receipt.size / 1024
+                formatted_size = f"{size:.1f}"
+                return format_html(
+                    '<span style="color: #27ae60;">✓ Uploaded</span><br/>'
+                    '<span style="color: #7f8c8d; font-size: 0.85rem;">{} KB</span>',
+                    formatted_size
+                )
+            except (OSError, ValueError):
+                # File doesn't exist or size can't be determined
+                return format_html(
+                    '<span style="color: #f39c12;">⚠ File missing</span><br/>'
+                    '<span style="color: #7f8c8d; font-size: 0.85rem;">{}</span>',
+                    obj.receipt.name.split('/')[-1] if obj.receipt.name else 'Unknown'
+                )
         return format_html(
             '<span style="color: #e74c3c;">✗ No receipt</span>'
         )
