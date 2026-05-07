@@ -43,6 +43,8 @@ class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
             elif custom_domain.startswith('https://'):
                 custom_domain = custom_domain[len('https://'):]
             custom_domain = custom_domain.rstrip('/')
+            if not custom_domain:
+                custom_domain = None
 
         self.querystring_auth = getattr(settings, 'AWS_QUERYSTRING_AUTH', self.querystring_auth)
 
