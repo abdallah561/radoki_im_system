@@ -126,6 +126,7 @@ def approve_receipt(request, payment_id):
         # Only save if not already approved
         if not payment.approved:
             payment.approved = True
+            payment.rejected = False
             payment.rejection_reason = None  # Clear any previous rejection
             payment.save()  # This will trigger the signal to send approval email
             
@@ -161,10 +162,11 @@ def reject_receipt(request, payment_id):
             return redirect('payments:review_receipts')
 
         try:
-            # Set rejection reason and save
+            # Set rejection reason and rejected flag
             # Signal will detect this change and send rejection email
             payment.rejection_reason = rejection_reason
             payment.approved = False
+            payment.rejected = True
             payment.save()  # This will trigger the signal to send rejection email
             
             logger.info(f"Payment {payment_id} rejected by instructor {request.user.username}. Reason: {rejection_reason}")
