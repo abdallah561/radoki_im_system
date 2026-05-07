@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class CloudflareR2Storage(S3Boto3Storage if STORAGE_AVAILABLE else object):
     """Django storage backend that uploads media files to Cloudflare R2."""
 
-    default_acl = None
+    default_acl = 'public-read'
     file_overwrite = False
     querystring_auth = False
     object_parameters = {'CacheControl': 'max-age=31536000, public'}
