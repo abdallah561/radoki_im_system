@@ -130,6 +130,7 @@
 const TOTAL = {{ questions|length }};
 let answeredCount = 0;
 let isAutoSubmit = false;  // Flag to track auto-submission (prevent beforeunload dialog)
+let isFormSubmitting = false;  // Flag to track manual form submission
 
 function selectOpt(label, cardIdx) {
   const card = document.getElementById('qcard-' + cardIdx);
@@ -168,7 +169,6 @@ function updateProgress() {
   function tick() {
     if (secs <= 0) {
       isAutoSubmit = true;  // Flag that this is auto-submit
-      window.onbeforeunload = null;  // Disable the warning dialog
       document.getElementById('quiz-form').submit();
       return;
     }
@@ -182,15 +182,15 @@ function updateProgress() {
 }());
 {% endif %}
 
-// Warn on accidental navigation away - EXCEPT during timer auto-submit
+// Warn on accidental navigation away - EXCEPT during submission or timer auto-submit
 window.addEventListener('beforeunload', e => {
-  if (!isAutoSubmit) {
+  if (!isAutoSubmit && !isFormSubmitting) {
     e.preventDefault();
     e.returnValue = '';
   }
 });
 document.getElementById('quiz-form').addEventListener('submit', () => {
-  window.onbeforeunload = null;
+  isFormSubmitting = true;  // Set flag before submission to prevent beforeunload warning
 });
 </script>
 {% endblock %}
