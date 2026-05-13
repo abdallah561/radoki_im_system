@@ -1890,7 +1890,7 @@ def instructor_analytics(request, course_id):
     student_data = []
     for enrollment in approved_enrollments:
         done = enrollment.done_lessons
-        pct = enrollment.get_completion_percentage()
+        pct = enrollment.completion_percentage
         last_accessed = enrollment.last_accessed
         total_time = enrollment.total_time_spent or 0
         is_active    = last_accessed and last_accessed >= seven_days_ago
