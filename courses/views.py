@@ -1873,16 +1873,16 @@ def instructor_analytics(request, course_id):
                 )
             ),
             total_time_spent=Sum(
-                'student__lessonprogress__time_spent_seconds',
-                filter=Q(student__lessonprogress__lesson__module__course=course)
+                'student__lesson_progress__time_spent_seconds',
+                filter=Q(student__lesson_progress__lesson__module__course=course)
             ),
             assign_submitted=Count(
                 'student__assignment_submissions',
                 filter=Q(student__assignment_submissions__assignment__course=course)
             ),
             last_accessed=Max(
-                'student__lessonprogress__last_accessed',
-                filter=Q(student__lessonprogress__lesson__module__course=course)
+                'student__lesson_progress__last_accessed',
+                filter=Q(student__lesson_progress__lesson__module__course=course)
             )
         )
         .order_by('enrolled_at')
