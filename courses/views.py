@@ -1866,10 +1866,10 @@ def instructor_analytics(request, course_id):
         .select_related('student')
         .annotate(
             done_lessons=Count(
-                'student__lessoncompletion',
+                'student__lesson_completions',
                 filter=Q(
-                    student__lessoncompletion__lesson__module__course=course,
-                    student__lessoncompletion__lesson__is_published=True
+                    student__lesson_completions__lesson__module__course=course,
+                    student__lesson_completions__lesson__is_published=True
                 )
             ),
             total_time_spent=Sum(
@@ -1877,8 +1877,8 @@ def instructor_analytics(request, course_id):
                 filter=Q(student__lessonprogress__lesson__module__course=course)
             ),
             assign_submitted=Count(
-                'student__assignmentsubmission',
-                filter=Q(student__assignmentsubmission__assignment__course=course)
+                'student__assignment_submissions',
+                filter=Q(student__assignment_submissions__assignment__course=course)
             ),
             last_accessed=Max(
                 'student__lessonprogress__last_accessed',
