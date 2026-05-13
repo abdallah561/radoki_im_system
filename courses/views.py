@@ -8,7 +8,8 @@ from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon, AssignmentSubmission
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from assignments.models import AssignmentSubmission
 from core.models import AdminAccessControl
 
 logger = logging.getLogger(__name__)
