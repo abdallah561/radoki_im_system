@@ -5,10 +5,10 @@ from django.contrib import messages
 import logging
 
 from django.core.exceptions import PermissionDenied # Correct import location
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon, AssignmentSubmission
 from core.models import AdminAccessControl
 
 logger = logging.getLogger(__name__)
@@ -1859,34 +1859,45 @@ def instructor_analytics(request, course_id):
         })
 
     # ── Student breakdown ─────────────────────────────────────────────────────
+    total_lessons = Lesson.objects.filter(module__course=course, is_published=True).count()
     approved_enrollments = (
         Enrollment.objects.filter(course=course, approved=True)
         .select_related('student')
+        .annotate(
+            done_lessons=Count(
+                'student__lessoncompletion',
+                filter=Q(
+                    student__lessoncompletion__lesson__module__course=course,
+                    student__lessoncompletion__lesson__is_published=True
+                )
+            ),
+            total_time_spent=Sum(
+                'student__lessonprogress__time_spent_seconds',
+                filter=Q(student__lessonprogress__lesson__module__course=course)
+            ),
+            assign_submitted=Count(
+                'student__assignmentsubmission',
+                filter=Q(student__assignmentsubmission__assignment__course=course)
+            ),
+            last_accessed=Max(
+                'student__lessonprogress__last_accessed',
+                filter=Q(student__lessonprogress__lesson__module__course=course)
+            )
+        )
         .order_by('enrolled_at')
     )
     student_data = []
     for enrollment in approved_enrollments:
-        done, total_l = enrollment.get_lesson_stats()
+        done = enrollment.done_lessons
         pct = enrollment.get_completion_percentage()
-        last_lp = (
-            LessonProgress.objects
-            .filter(student=enrollment.student, lesson__module__course=course)
-            .order_by('-last_accessed')
-            .first()
-        )
-        total_time = (
-            LessonProgress.objects
-            .filter(student=enrollment.student, lesson__module__course=course)
-            .aggregate(t=Sum('time_spent_seconds'))['t'] or 0
-        )
-        is_active    = last_lp and last_lp.last_accessed >= seven_days_ago
-        is_struggling = pct < 30 and (last_lp is not None)
-        is_at_risk   = last_lp is None and not enrollment.completed
+        last_accessed = enrollment.last_accessed
+        total_time = enrollment.total_time_spent or 0
+        is_active    = last_accessed and last_accessed >= seven_days_ago
+        is_struggling = pct < 30 and (last_accessed is not None)
+        is_at_risk   = last_accessed is None and not enrollment.completed
 
         quiz_passed = sum(1 for q in quizzes if q.student_passed(enrollment.student))
-        assign_submitted = AssignmentSubmission.objects.filter(
-            assignment__course=course, student=enrollment.student
-        ).count()
+        assign_submitted = enrollment.assign_submitted
 
         h, rem = divmod(total_time, 3600)
         m_disp = divmod(rem, 60)[0]
@@ -1897,8 +1908,8 @@ def instructor_analytics(request, course_id):
             'enrollment': enrollment,
             'pct': pct,
             'done_lessons': done,
-            'total_lessons': total_l,
-            'last_activity': last_lp.last_accessed if last_lp else None,
+            'total_lessons': total_lessons,
+            'last_activity': last_accessed,
             'time_display': time_display,
             'is_active': is_active,
             'is_struggling': is_struggling,
