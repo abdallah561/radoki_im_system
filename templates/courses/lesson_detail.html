@@ -175,7 +175,6 @@
       {% endif %}
 
       <!-- Recorded online sessions -->
-      {% if recordings %}
       <section class="mb-4">
         <h2 style="color:#2c3e50; font-size:1.15rem; font-weight:700; margin-bottom:12px;">
           <i class="fas fa-video me-2" style="color:#2980b9;"></i>Recorded Sessions
@@ -203,9 +202,13 @@
           </form>
           {% endif %}
         </div>
+        {% empty %}
+        <div class="attachment-card">
+          <div class="attachment-icon"><i class="fas fa-video-slash"></i></div>
+          <div style="flex:1; color:#5d6d7e;">No recorded sessions have been published for this lesson yet.</div>
+        </div>
         {% endfor %}
       </section>
-      {% endif %}
 
       {% if is_instructor_preview %}
       <section class="attachment-card mb-4">

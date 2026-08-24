@@ -1491,11 +1491,11 @@ def lesson_detail(request, lesson_id):
 
     # Access: enrolled+approved student OR the course instructor
     is_instructor_preview = (
-        request.user.is_superuser
+        request.user.is_staff
         or (request.user.is_instructor() and course.instructor == request.user)
     )
     enrollment = None
-    if request.user.is_student():
+    if request.user.is_student() and not is_instructor_preview:
         enrollment = Enrollment.objects.filter(
             student=request.user, course=course, approved=True
         ).first()
@@ -1555,7 +1555,7 @@ def add_lesson_recording(request, lesson_id):
     lesson = get_object_or_404(
         Lesson, pk=lesson_id
     )
-    if not (request.user.is_superuser or lesson.module.course.instructor == request.user):
+    if not (request.user.is_staff or lesson.module.course.instructor == request.user):
         raise PermissionDenied('Only the course instructor or an administrator can upload recordings.')
     if request.method != 'POST':
         return redirect('courses:lesson_detail', lesson_id=lesson.pk)
@@ -1579,7 +1579,7 @@ def delete_lesson_recording(request, recording_id):
     recording = get_object_or_404(
         LessonRecording, pk=recording_id
     )
-    if not (request.user.is_superuser or recording.lesson.module.course.instructor == request.user):
+    if not (request.user.is_staff or recording.lesson.module.course.instructor == request.user):
         raise PermissionDenied('Only the course instructor or an administrator can delete recordings.')
     lesson_id = recording.lesson_id
     if request.method == 'POST':
