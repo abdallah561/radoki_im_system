@@ -1599,6 +1599,8 @@ def lesson_detail(request, lesson_id):
     ) if request.user.is_student() else set()
 
     recording_form = LessonRecordingForm() if is_instructor_preview else None
+    video_link_form = LessonVideoLinkForm() if is_instructor_preview else None
+    additional_resource_form = LessonAdditionalResourceForm() if is_instructor_preview else None
 
     return render(request, 'courses/lesson_detail.html', {
         'lesson':               lesson,
@@ -1614,6 +1616,8 @@ def lesson_detail(request, lesson_id):
         'is_instructor_preview': is_instructor_preview,
         'recordings': lesson.recordings.all() if is_instructor_preview else lesson.recordings.filter(is_published=True),
         'recording_form': recording_form,
+        'video_link_form': video_link_form,
+        'additional_resource_form': additional_resource_form,
         'recording_resources': {
             recording.pk: recording.resources.all() for recording in lesson.recordings.all()
         },

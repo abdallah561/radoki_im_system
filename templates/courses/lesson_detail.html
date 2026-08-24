@@ -235,17 +235,21 @@
         </div>
       </section>
       {% endif %}
-
-      {% if additional_resources %}
-      <section class="lesson-content mb-4" style="padding:20px 24px;">
-        <h2 style="color:#1a5276;font-size:1.05rem;font-weight:700;margin-bottom:12px;"><i class="fas fa-paperclip me-2" style="color:#27ae60;"></i>More lesson resources</h2>
-        {% for resource in additional_resources %}
-        <div class="d-flex align-items-center gap-2 py-2" style="border-bottom:1px solid #edf2f7;min-width:0;">
-          <i class="fas fa-file-alt" style="color:#27ae60;"></i><span style="flex:1;min-width:0;overflow-wrap:anywhere;font-size:.84rem;">{{ resource.title }}</span>
-          <a href="{{ resource.file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary flex-shrink-0"><i class="fas fa-external-link-alt me-1"></i>Open</a>
+      {% if is_instructor_preview %}
+      <div class="attachment-card" style="border-left-color:#e74c3c;">
+        <div class="attachment-icon" style="background:#fde9e7;color:#c0392b;"><i class="fab fa-youtube"></i></div>
+        <div style="flex:1;min-width:0;">
+          <div class="fw-semibold" style="color:#c0392b;">Add another YouTube video</div>
+          <form method="post" action="{% url 'courses:add_lesson_video_link' lesson.pk %}" class="mt-2">
+            {% csrf_token %}
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">{{ video_link_form.title }}</div>
+              <div class="col-md-6">{{ video_link_form.youtube_url }}</div>
+              <div class="col-md-2"><button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div>
+            </div>
+          </form>
         </div>
-        {% endfor %}
-      </section>
+      </div>
       {% endif %}
 
       <!-- Recorded online sessions -->
@@ -351,6 +355,33 @@
            style="background:#27ae60;color:#fff;border-radius:8px;font-weight:600;">
           <i class="fas fa-download me-1"></i> Download
         </a>
+      </div>
+      {% endif %}
+      {% if additional_resources %}
+      <div class="lesson-content" style="padding:18px 22px;">
+        <h2 style="color:#1a5276;font-size:1.05rem;font-weight:700;margin-bottom:10px;"><i class="fas fa-paperclip me-2" style="color:#27ae60;"></i>Additional attachments</h2>
+        {% for resource in additional_resources %}
+        <div class="d-flex align-items-center gap-2 py-2" style="border-bottom:1px solid #edf2f7;min-width:0;">
+          <i class="fas fa-file-alt" style="color:#27ae60;"></i><span style="flex:1;min-width:0;overflow-wrap:anywhere;font-size:.84rem;">{{ resource.title }}</span>
+          <a href="{{ resource.file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary flex-shrink-0"><i class="fas fa-external-link-alt me-1"></i>Open</a>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if is_instructor_preview %}
+      <div class="attachment-card" style="border-left-color:#2980b9;">
+        <div class="attachment-icon" style="background:#d6eaf8;color:#1a5276;"><i class="fas fa-plus"></i></div>
+        <div style="flex:1;min-width:0;">
+          <div class="fw-semibold" style="color:#1a5276;">Add another attachment</div>
+          <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_additional_resource' lesson.pk %}" class="mt-2">
+            {% csrf_token %}
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">{{ additional_resource_form.title }}</div>
+              <div class="col-md-5">{{ additional_resource_form.file }}</div>
+              <div class="col-md-2"><button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div>
+            </div>
+          </form>
+        </div>
       </div>
       {% endif %}
 
