@@ -20,6 +20,10 @@
 .session-material > span { min-width:0; overflow-wrap:anywhere; }
 .session-add-material { padding-top:13px; border-top:1px dashed #c9e4f7; }
 .session-add-material-label { color:#5d6d7e; font-size:.75rem; font-weight:700; margin-bottom:7px; }
+.lesson-extra-list { margin-top:10px; padding:10px 12px; border:1px solid #edf2f7; border-radius:10px; background:#f8fbff; }
+.lesson-extra-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid #edf2f7; font-size:.78rem; }
+.lesson-extra-item:last-child { border-bottom:0; }
+.lesson-extra-item > span { min-width:0; overflow-wrap:anywhere; }
 @media(max-width:575.98px){
   .container-fluid.py-4 { padding:16px 10px !important; }
   .container-fluid .card-body { padding:18px !important; }
@@ -165,6 +169,22 @@
                 </div>
 
               </div>
+              {% if lesson and video_links %}
+              <div class="lesson-extra-list">
+                <div class="session-materials-heading"><i class="fab fa-youtube me-1" style="color:#e74c3c;"></i>Additional YouTube videos</div>
+                {% for link in video_links %}
+                <div class="lesson-extra-item"><span>{{ link.title }}</span><form method="post" action="{% url 'courses:delete_lesson_video_link' link.pk %}">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm p-0" title="Remove video"><i class="fas fa-times"></i></button></form></div>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if lesson and action == 'Edit' %}
+              <div class="session-add-material mt-3">
+                <div class="session-add-material-label">Add another YouTube video</div>
+                <form method="post" action="{% url 'courses:add_lesson_video_link' lesson.pk %}">
+                  {% csrf_token %}<div class="row g-2"><div class="col-md-4">{{ video_link_form.title }}</div><div class="col-md-6">{{ video_link_form.youtube_url }}</div><div class="col-md-2"><button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
+                </form>
+              </div>
+              {% endif %}
             </div>
 
             <!-- ⑤ Resource File -->
@@ -198,6 +218,22 @@
                 <p class="text-muted mb-0" style="font-size:.75rem;">PDF, Word, Excel, ZIP, images (max 50 MB)</p>
                 <div id="file-name-display" class="mt-2 fw-semibold" style="color:#1a5276; display:none;"></div>
               </div>
+              {% if lesson and additional_resources %}
+              <div class="lesson-extra-list">
+                <div class="session-materials-heading"><i class="fas fa-paperclip me-1" style="color:#27ae60;"></i>Additional lesson resources</div>
+                {% for resource in additional_resources %}
+                <div class="lesson-extra-item"><span>{{ resource.title }}</span><form method="post" action="{% url 'courses:delete_lesson_additional_resource' resource.pk %}">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm p-0" title="Remove resource"><i class="fas fa-times"></i></button></form></div>
+                {% endfor %}
+              </div>
+              {% endif %}
+              {% if lesson and action == 'Edit' %}
+              <div class="session-add-material mt-3">
+                <div class="session-add-material-label">Add another lesson resource</div>
+                <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_additional_resource' lesson.pk %}">
+                  {% csrf_token %}<div class="row g-2"><div class="col-md-4">{{ additional_resource_form.title }}</div><div class="col-md-6">{{ additional_resource_form.file }}</div><div class="col-md-2"><button type="submit" class="btn btn-outline-success btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
+                </form>
+              </div>
+              {% endif %}
             </div>
 
             <!-- ⑥ Published toggle -->

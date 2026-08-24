@@ -225,6 +225,29 @@
       </div>
       {% endif %}
 
+      {% if video_links %}
+      <section class="lesson-content mb-4" style="padding:20px 24px;">
+        <h2 style="color:#1a5276;font-size:1.05rem;font-weight:700;margin-bottom:12px;"><i class="fab fa-youtube me-2" style="color:#e74c3c;"></i>More lesson videos</h2>
+        <div class="row g-3">
+          {% for link in video_links %}
+          {% if link.get_embed_url %}<div class="col-12 col-md-6"><div class="ratio ratio-16x9"><iframe src="{{ link.get_embed_url }}" title="{{ link.title }}" allowfullscreen></iframe></div><div class="mt-2" style="color:#1a5276;font-size:.82rem;font-weight:600;overflow-wrap:anywhere;">{{ link.title }}</div></div>{% endif %}
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      {% if additional_resources %}
+      <section class="lesson-content mb-4" style="padding:20px 24px;">
+        <h2 style="color:#1a5276;font-size:1.05rem;font-weight:700;margin-bottom:12px;"><i class="fas fa-paperclip me-2" style="color:#27ae60;"></i>More lesson resources</h2>
+        {% for resource in additional_resources %}
+        <div class="d-flex align-items-center gap-2 py-2" style="border-bottom:1px solid #edf2f7;min-width:0;">
+          <i class="fas fa-file-alt" style="color:#27ae60;"></i><span style="flex:1;min-width:0;overflow-wrap:anywhere;font-size:.84rem;">{{ resource.title }}</span>
+          <a href="{{ resource.file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary flex-shrink-0"><i class="fas fa-external-link-alt me-1"></i>Open</a>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
       <!-- Recorded online sessions -->
       <section class="recordings-section">
         <div class="recordings-heading">

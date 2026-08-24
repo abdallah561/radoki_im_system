@@ -503,6 +503,52 @@ class Lesson(models.Model):
         return os.path.basename(self.resource_file.name) if self.resource_file else ''
 
 
+class LessonVideoLink(models.Model):
+    """An additional YouTube video belonging directly to a lesson."""
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='video_links')
+    title = models.CharField(max_length=255)
+    youtube_url = models.URLField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.lesson.title} - {self.title}'
+
+    def get_embed_url(self):
+        import re
+        patterns = [
+            r'(?:youtu\.be/)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/watch\?v=)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/embed/)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/shorts/)([a-zA-Z0-9_-]{11})',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, self.youtube_url or '')
+            if match:
+                return f'https://www.youtube.com/embed/{match.group(1)}?rel=0'
+        return ''
+
+
+class LessonAdditionalResource(models.Model):
+    """An additional downloadable resource belonging directly to a lesson."""
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='additional_resources')
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='lessons/resources/%Y/%m/', max_length=500)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f'{self.lesson.title} - {self.title}'
+
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name) if self.file else ''
+
+
 class LessonRecording(models.Model):
     """A recorded online session available from a lesson."""
     lesson = models.ForeignKey(
