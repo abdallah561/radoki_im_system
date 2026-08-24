@@ -61,6 +61,8 @@ urlpatterns = [
     path('lessons/<int:lesson_id>/download-resource/', views.download_lesson_resource, name='download_lesson_resource'),
     path('lessons/<int:lesson_id>/recordings/add/', views.add_lesson_recording, name='add_lesson_recording'),
     path('recordings/<int:recording_id>/delete/', views.delete_lesson_recording, name='delete_lesson_recording'),
+    path('recordings/<int:recording_id>/resources/add/', views.add_lesson_recording_resource, name='add_lesson_recording_resource'),
+    path('recording-resources/<int:resource_id>/delete/', views.delete_lesson_recording_resource, name='delete_lesson_recording_resource'),
     path('lessons/reorder/', views.reorder_lessons, name='reorder_lessons'),    # AJAX
 
     # ── Enrollment / Completion / Certificate ────────────────────────────────

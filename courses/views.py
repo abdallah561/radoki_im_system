@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonRecording, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
 from assignments.models import AssignmentSubmission
 from core.models import AdminAccessControl
 
@@ -43,7 +43,7 @@ def _staff_permission_denied(request, message=None):
     return None
 
 
-from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm
+from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm, LessonRecordingResourceForm
 from django.utils.html import format_html
 from django.http import FileResponse, HttpResponse
 from django.urls import reverse
@@ -1454,6 +1454,7 @@ def edit_lesson(request, lesson_id):
         'course': module.course, 'action': 'Edit',
         'recordings': lesson.recordings.all(),
         'recording_form': LessonRecordingForm(),
+        'recording_resource_form': LessonRecordingResourceForm(),
     })
 
 
@@ -1546,6 +1547,9 @@ def lesson_detail(request, lesson_id):
         'is_instructor_preview': is_instructor_preview,
         'recordings': lesson.recordings.all() if is_instructor_preview else lesson.recordings.filter(is_published=True),
         'recording_form': recording_form,
+        'recording_resources': {
+            recording.pk: recording.resources.all() for recording in lesson.recordings.all()
+        },
     })
 
 
@@ -1587,6 +1591,40 @@ def delete_lesson_recording(request, recording_id):
         recording.delete()
         messages.success(request, 'Recording deleted.')
     return redirect('courses:lesson_detail', lesson_id=lesson_id)
+
+
+@login_required
+def add_lesson_recording_resource(request, recording_id):
+    """Instructor: add another resource to a recorded session."""
+    recording = get_object_or_404(LessonRecording, pk=recording_id)
+    if not (request.user.is_staff or recording.lesson.module.course.instructor == request.user):
+        raise PermissionDenied('Only the course instructor or an administrator can add resources.')
+    if request.method == 'POST':
+        form = LessonRecordingResourceForm(request.POST, request.FILES)
+        if form.is_valid():
+            resource = form.save(commit=False)
+            resource.recording = recording
+            resource.save()
+            messages.success(request, f'Resource "{resource.title}" added.')
+        else:
+            for field_errors in form.errors.values():
+                for error in field_errors:
+                    messages.error(request, error)
+    return redirect('courses:edit_lesson', lesson_id=recording.lesson_id)
+
+
+@login_required
+def delete_lesson_recording_resource(request, resource_id):
+    """Instructor: delete a resource attached to a recorded session."""
+    resource = get_object_or_404(LessonRecordingResource, pk=resource_id)
+    if not (request.user.is_staff or resource.recording.lesson.module.course.instructor == request.user):
+        raise PermissionDenied('Only the course instructor or an administrator can delete resources.')
+    lesson_id = resource.recording.lesson_id
+    if request.method == 'POST':
+        resource.file.delete(save=False)
+        resource.delete()
+        messages.success(request, 'Resource deleted.')
+    return redirect('courses:edit_lesson', lesson_id=lesson_id)
 
 
 @login_required

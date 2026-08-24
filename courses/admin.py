@@ -9,7 +9,7 @@ from django.contrib.admin import SimpleListFilter
 from datetime import timedelta
 from .models import (
     Course, Enrollment, Resource, PaymentMethod, LiveSession, Coupon,
-    Module, Lesson, LessonRecording, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload
+    Module, Lesson, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload
 )
 from .admin_enhancements import AdminEnhancements, ApprovalStatusFilter, DateRangeFilter
 from core.admin_mixins import AdminLoggingMixin, AdminExportMixin
@@ -1347,6 +1347,13 @@ class LessonRecordingAdmin(AdminLoggingMixin, admin.ModelAdmin):
         ('Video Sources', {'fields': ('video', 'youtube_url', 'resource_file')}),
         ('Metadata', {'fields': ('uploaded_at',), 'classes': ('collapse',)}),
     )
+
+
+@admin.register(LessonRecordingResource)
+class LessonRecordingResourceAdmin(AdminLoggingMixin, admin.ModelAdmin):
+    list_display = ('title', 'recording', 'uploaded_at')
+    search_fields = ('title', 'recording__title', 'recording__lesson__title')
+    readonly_fields = ('uploaded_at',)
 
 
 # --- LESSON COMPLETION ADMIN ---

@@ -60,6 +60,7 @@
 .recording-resource { display:flex; align-items:center; gap:9px; padding:10px 16px; border-top:1px solid #eaf4fd; color:#5d6d7e; font-size:.78rem; background:#fff; }
 .recording-resource > i { color:#27ae60; }
 .recording-resource span { overflow-wrap:anywhere; }
+.recording-resource a { flex-shrink:0; }
 .recording-actions { padding:0 16px 13px; background:#f5faff; }
 .recording-empty { display:flex; align-items:center; gap:14px; padding:17px 18px; border:1px dashed #aed6f1; border-radius:12px; background:#f8fbff; color:#5d6d7e; font-size:.84rem; }
 .recording-empty .attachment-icon { background:#eaf4fd; color:#2980b9; }
@@ -239,6 +240,15 @@
             </a>
           </div>
           {% endif %}
+          {% for resource in recording.resources.all %}
+          <div class="recording-resource">
+            <i class="fas fa-file-alt"></i>
+            <span>{{ resource.title }}</span>
+            <a href="{{ resource.file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary ms-auto">
+              <i class="fas fa-external-link-alt me-1"></i> Open resource
+            </a>
+          </div>
+          {% endfor %}
           {% if is_instructor_preview %}
           <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}" class="recording-actions">
             {% csrf_token %}

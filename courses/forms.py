@@ -52,7 +52,7 @@ PaymentMethodFormSet = modelformset_factory(
     formset=BasePaymentMethodFormSet,
 )
 
-from .models import Resource, LessonRecording
+from .models import Resource, LessonRecording, LessonRecordingResource
 
 class ResourceForm(forms.ModelForm):
     class Meta:
@@ -111,6 +111,25 @@ class LessonRecordingForm(forms.ModelForm):
         if not cleaned_data.get('video') and not cleaned_data.get('youtube_url'):
             raise forms.ValidationError('Add an uploaded video or a YouTube recording link.')
         return cleaned_data
+
+
+class LessonRecordingResourceForm(forms.ModelForm):
+    class Meta:
+        model = LessonRecordingResource
+        fields = ['title', 'file']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Session notes',
+            }),
+            'file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean_file(self):
+        resource_file = self.cleaned_data['file']
+        if resource_file.size > 50 * 1024 * 1024:
+            raise forms.ValidationError('Session resources must be 50 MB or smaller.')
+        return resource_file
 
 
 class LiveSessionForm(forms.ModelForm):

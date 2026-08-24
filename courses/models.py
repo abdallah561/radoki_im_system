@@ -556,6 +556,31 @@ class LessonRecording(models.Model):
         return os.path.basename(self.resource_file.name) if self.resource_file else ''
 
 
+class LessonRecordingResource(models.Model):
+    """Additional downloadable material attached to one recorded session."""
+    recording = models.ForeignKey(
+        LessonRecording,
+        on_delete=models.CASCADE,
+        related_name='resources'
+    )
+    title = models.CharField(max_length=255)
+    file = models.FileField(
+        upload_to='lessons/recordings/resources/%Y/%m/',
+        max_length=500,
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f'{self.recording.title} - {self.title}'
+
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name) if self.file else ''
+
+
 class LessonCompletion(models.Model):
     """Records that a specific student has completed a specific lesson."""
     student      = models.ForeignKey(
