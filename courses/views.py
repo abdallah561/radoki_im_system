@@ -1488,7 +1488,10 @@ def lesson_detail(request, lesson_id):
     course = module.course
 
     # Access: enrolled+approved student OR the course instructor
-    is_instructor_preview = request.user.is_instructor() and course.instructor == request.user
+    is_instructor_preview = (
+        request.user.is_superuser
+        or (request.user.is_instructor() and course.instructor == request.user)
+    )
     enrollment = None
     if request.user.is_student():
         enrollment = Enrollment.objects.filter(
@@ -1548,8 +1551,10 @@ def lesson_detail(request, lesson_id):
 def add_lesson_recording(request, lesson_id):
     """Instructor: upload a recorded session for a lesson."""
     lesson = get_object_or_404(
-        Lesson, pk=lesson_id, module__course__instructor=request.user
+        Lesson, pk=lesson_id
     )
+    if not (request.user.is_superuser or lesson.module.course.instructor == request.user):
+        raise PermissionDenied('Only the course instructor or an administrator can upload recordings.')
     if request.method != 'POST':
         return redirect('courses:lesson_detail', lesson_id=lesson.pk)
 
@@ -1570,8 +1575,10 @@ def add_lesson_recording(request, lesson_id):
 def delete_lesson_recording(request, recording_id):
     """Instructor: delete a recorded session."""
     recording = get_object_or_404(
-        LessonRecording, pk=recording_id, lesson__module__course__instructor=request.user
+        LessonRecording, pk=recording_id
     )
+    if not (request.user.is_superuser or recording.lesson.module.course.instructor == request.user):
+        raise PermissionDenied('Only the course instructor or an administrator can delete recordings.')
     lesson_id = recording.lesson_id
     if request.method == 'POST':
         recording.video.delete(save=False)
