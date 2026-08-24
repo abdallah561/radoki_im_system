@@ -45,6 +45,33 @@
 .video-wrapper { border-radius:14px; overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.12); margin-bottom:28px; }
 .video-wrapper .ratio { border-radius:14px; overflow:hidden; }
 
+/* ── Recorded sessions ── */
+.recordings-section { margin:32px 0 28px; }
+.recordings-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.recordings-heading h2 { margin:0; color:#1a5276; font-size:1.18rem; font-weight:700; }
+.recordings-heading .recordings-count { color:#2980b9; background:#eaf4fd; border:1px solid #c9e4f7; border-radius:20px; padding:5px 11px; font-size:.74rem; font-weight:700; white-space:nowrap; }
+.recording-card { background:#fff; border:1px solid #d6eaf8; border-radius:14px; overflow:hidden; box-shadow:0 3px 14px rgba(26,82,118,.08); margin-bottom:16px; }
+.recording-card video { display:block; width:100%; max-height:560px; background:#102a43; }
+.recording-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; background:#f5faff; border-top:1px solid #eaf4fd; }
+.recording-title { display:flex; align-items:center; gap:9px; min-width:0; color:#1a5276; font-weight:700; font-size:.9rem; }
+.recording-title i { color:#2980b9; }
+.recording-title span { overflow-wrap:anywhere; }
+.recording-duration { color:#5d6d7e; font-size:.76rem; white-space:nowrap; }
+.recording-actions { padding:0 16px 13px; background:#f5faff; }
+.recording-empty { display:flex; align-items:center; gap:14px; padding:17px 18px; border:1px dashed #aed6f1; border-radius:12px; background:#f8fbff; color:#5d6d7e; font-size:.84rem; }
+.recording-empty .attachment-icon { background:#eaf4fd; color:#2980b9; }
+.recording-upload { display:flex; align-items:flex-start; gap:14px; padding:18px; margin-top:16px; border:1px solid #c9e4f7; border-left:4px solid #2980b9; border-radius:12px; background:linear-gradient(135deg,#f8fbff,#eef7fd); }
+.recording-upload .attachment-icon { background:#d6eaf8; color:#1a5276; }
+.recording-upload-body { flex:1; min-width:0; }
+.recording-upload-title { color:#1a5276; font-weight:700; font-size:.92rem; }
+.recording-upload-subtitle { color:#5d6d7e; font-size:.77rem; margin:3px 0 12px; }
+.recording-upload form .form-control { border-color:#c9e4f7; font-size:.84rem; }
+@media(max-width:575.98px){
+  .recordings-heading { align-items:flex-start; flex-direction:column; }
+  .recording-meta { align-items:flex-start; flex-direction:column; gap:5px; }
+  .recording-upload { padding:15px; }
+}
+
 /* ── YouTube fallback ── */
 .yt-fallback { display:none; border-radius:14px; background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; padding:40px 28px; text-align:center; margin-bottom:28px; box-shadow:0 4px 20px rgba(0,0,0,.18); }
 .yt-fallback .yt-icon { font-size:3rem; color:#e74c3c; margin-bottom:12px; }
@@ -175,27 +202,27 @@
       {% endif %}
 
       <!-- Recorded online sessions -->
-      <section class="mb-4">
-        <h2 style="color:#2c3e50; font-size:1.15rem; font-weight:700; margin-bottom:12px;">
-          <i class="fas fa-video me-2" style="color:#2980b9;"></i>Recorded Sessions
-        </h2>
+      <section class="recordings-section">
+        <div class="recordings-heading">
+          <h2><i class="fas fa-video me-2"></i>Recorded Sessions</h2>
+          <span class="recordings-count">{{ recordings|length }} available</span>
+        </div>
         {% for recording in recordings %}
-        <div class="video-wrapper mb-3" style="background:#000; border-radius:10px; overflow:hidden;">
+        <div class="recording-card">
              <video controls preload="metadata"
                {% if not is_instructor_preview %}controlslist="nodownload" disablepictureinpicture oncontextmenu="return false;"{% endif %}
-               style="display:block; width:100%; max-height:560px;">
+               >
             <source src="{{ recording.video.url }}">
             Your browser does not support video playback.
           </video>
-          <div class="d-flex align-items-center justify-content-between gap-2 px-3 py-2"
-               style="background:#1f2933; color:#fff;">
-            <span style="font-weight:600;">{{ recording.title }}</span>
+          <div class="recording-meta">
+            <div class="recording-title"><i class="fas fa-play-circle"></i><span>{{ recording.title }}</span></div>
             {% if recording.duration_minutes %}
-            <span style="font-size:.78rem; color:#cbd5e1;">{{ recording.duration_minutes }} min</span>
+            <span class="recording-duration"><i class="fas fa-clock me-1"></i>{{ recording.duration_minutes }} min</span>
             {% endif %}
           </div>
           {% if is_instructor_preview %}
-          <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}" class="px-3 py-2" style="background:#1f2933;">
+          <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}" class="recording-actions">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-danger"
                     onclick="return confirm('Delete this recording?');">
@@ -205,19 +232,19 @@
           {% endif %}
         </div>
         {% empty %}
-        <div class="attachment-card">
+        <div class="recording-empty">
           <div class="attachment-icon"><i class="fas fa-video-slash"></i></div>
-          <div style="flex:1; color:#5d6d7e;">No recorded sessions have been published for this lesson yet.</div>
+          <div>No recorded sessions have been published for this lesson yet.</div>
         </div>
         {% endfor %}
       </section>
 
       {% if is_instructor_preview %}
-      <section class="attachment-card mb-4">
+      <section class="recording-upload">
         <div class="attachment-icon"><i class="fas fa-upload"></i></div>
-        <div style="flex:1;">
-          <div class="fw-semibold" style="color:#2c3e50;">Upload a recorded session</div>
-          <div class="text-muted mb-2" style="font-size:.78rem;">MP4, WebM, MOV, or M4V up to 1 GB</div>
+        <div class="recording-upload-body">
+          <div class="recording-upload-title">Add a recorded session</div>
+          <div class="recording-upload-subtitle">MP4, WebM, MOV, or M4V up to 1 GB</div>
           <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_recording' lesson.pk %}">
             {% csrf_token %}
             <div class="row g-2">
@@ -225,7 +252,7 @@
               <div class="col-md-7">{{ recording_form.video }}</div>
               <div class="col-md-4">{{ recording_form.duration_minutes }}</div>
               <div class="col-md-4 form-check mt-3 ms-2">{{ recording_form.is_published }} <label class="form-check-label">Publish now</label></div>
-              <div class="col-12"><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-upload me-1"></i> Upload recording</button></div>
+              <div class="col-12"><button type="submit" class="btn btn-primary btn-sm px-3"><i class="fas fa-upload me-1"></i> Upload recording</button></div>
             </div>
           </form>
         </div>
