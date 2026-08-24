@@ -515,6 +515,16 @@ class LessonRecording(models.Model):
         upload_to='lessons/recordings/%Y/%m/',
         validators=[FileExtensionValidator(allowed_extensions=['mp4', 'webm', 'mov', 'm4v'])],
         max_length=500,
+        null=True,
+        blank=True,
+    )
+    youtube_url = models.URLField(blank=True, help_text='Optional YouTube recording link')
+    resource_file = models.FileField(
+        upload_to='lessons/recordings/resources/%Y/%m/',
+        null=True,
+        blank=True,
+        max_length=500,
+        help_text='Optional resource for this recorded session',
     )
     duration_minutes = models.PositiveIntegerField(null=True, blank=True)
     is_published = models.BooleanField(default=True)
@@ -525,6 +535,25 @@ class LessonRecording(models.Model):
 
     def __str__(self):
         return f'{self.lesson.title} - {self.title}'
+
+    def get_youtube_embed_url(self):
+        """Convert common YouTube URLs to an embeddable URL."""
+        import re
+        patterns = [
+            r'(?:youtu\.be/)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/watch\?v=)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/embed/)([a-zA-Z0-9_-]{11})',
+            r'(?:youtube\.com/shorts/)([a-zA-Z0-9_-]{11})',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, self.youtube_url or '')
+            if match:
+                return f'https://www.youtube.com/embed/{match.group(1)}?rel=0'
+        return ''
+
+    def resource_filename(self):
+        import os
+        return os.path.basename(self.resource_file.name) if self.resource_file else ''
 
 
 class LessonCompletion(models.Model):

@@ -1342,6 +1342,11 @@ class LessonRecordingAdmin(AdminLoggingMixin, admin.ModelAdmin):
     list_filter = ('is_published', 'uploaded_at')
     search_fields = ('title', 'lesson__title', 'lesson__module__course__title')
     readonly_fields = ('uploaded_at',)
+    fieldsets = (
+        ('Session Details', {'fields': ('lesson', 'title', 'duration_minutes', 'is_published')}),
+        ('Video Sources', {'fields': ('video', 'youtube_url', 'resource_file')}),
+        ('Metadata', {'fields': ('uploaded_at',), 'classes': ('collapse',)}),
+    )
 
 
 # --- LESSON COMPLETION ADMIN ---

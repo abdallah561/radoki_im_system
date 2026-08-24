@@ -222,8 +222,16 @@
                 {{ recording_form.title }}
               </div>
               <div class="col-md-7">
-                <label class="form-label fw-semibold">Video file</label>
+                <label class="form-label fw-semibold">Uploaded video</label>
                 {{ recording_form.video }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">YouTube link</label>
+                {{ recording_form.youtube_url }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Session resource</label>
+                {{ recording_form.resource_file }}
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold">Duration (minutes)</label>

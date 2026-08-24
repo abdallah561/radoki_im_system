@@ -57,6 +57,9 @@
 .recording-title i { color:#2980b9; }
 .recording-title span { overflow-wrap:anywhere; }
 .recording-duration { color:#5d6d7e; font-size:.76rem; white-space:nowrap; }
+.recording-resource { display:flex; align-items:center; gap:9px; padding:10px 16px; border-top:1px solid #eaf4fd; color:#5d6d7e; font-size:.78rem; background:#fff; }
+.recording-resource > i { color:#27ae60; }
+.recording-resource span { overflow-wrap:anywhere; }
 .recording-actions { padding:0 16px 13px; background:#f5faff; }
 .recording-empty { display:flex; align-items:center; gap:14px; padding:17px 18px; border:1px dashed #aed6f1; border-radius:12px; background:#f8fbff; color:#5d6d7e; font-size:.84rem; }
 .recording-empty .attachment-icon { background:#eaf4fd; color:#2980b9; }
@@ -209,18 +212,33 @@
         </div>
         {% for recording in recordings %}
         <div class="recording-card">
+          {% if recording.video %}
              <video controls preload="metadata"
                {% if not is_instructor_preview %}controlslist="nodownload" disablepictureinpicture oncontextmenu="return false;"{% endif %}
                >
             <source src="{{ recording.video.url }}">
             Your browser does not support video playback.
           </video>
+          {% elif recording.get_youtube_embed_url %}
+          <div class="ratio ratio-16x9" style="background:#102a43;">
+            <iframe src="{{ recording.get_youtube_embed_url }}" title="{{ recording.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          {% endif %}
           <div class="recording-meta">
             <div class="recording-title"><i class="fas fa-play-circle"></i><span>{{ recording.title }}</span></div>
             {% if recording.duration_minutes %}
             <span class="recording-duration"><i class="fas fa-clock me-1"></i>{{ recording.duration_minutes }} min</span>
             {% endif %}
           </div>
+          {% if recording.resource_file %}
+          <div class="recording-resource">
+            <i class="fas fa-paperclip"></i>
+            <span>{{ recording.resource_filename }}</span>
+            <a href="{{ recording.resource_file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary ms-auto">
+              <i class="fas fa-external-link-alt me-1"></i> Open resource
+            </a>
+          </div>
+          {% endif %}
           {% if is_instructor_preview %}
           <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}" class="recording-actions">
             {% csrf_token %}
@@ -250,6 +268,8 @@
             <div class="row g-2">
               <div class="col-md-5">{{ recording_form.title }}</div>
               <div class="col-md-7">{{ recording_form.video }}</div>
+              <div class="col-md-6">{{ recording_form.youtube_url }}</div>
+              <div class="col-md-6">{{ recording_form.resource_file }}</div>
               <div class="col-md-4">{{ recording_form.duration_minutes }}</div>
               <div class="col-md-4 form-check mt-3 ms-2">{{ recording_form.is_published }} <label class="form-check-label">Publish now</label></div>
               <div class="col-12"><button type="submit" class="btn btn-primary btn-sm px-3"><i class="fas fa-upload me-1"></i> Upload recording</button></div>

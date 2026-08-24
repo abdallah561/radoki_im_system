@@ -67,7 +67,7 @@ class LessonRecordingForm(forms.ModelForm):
     """Form used by instructors to add a video recording to a lesson."""
     class Meta:
         model = LessonRecording
-        fields = ['title', 'video', 'duration_minutes', 'is_published']
+        fields = ['title', 'video', 'youtube_url', 'resource_file', 'duration_minutes', 'is_published']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -76,6 +76,13 @@ class LessonRecordingForm(forms.ModelForm):
             'video': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
                 'accept': 'video/mp4,video/webm,video/quicktime,video/x-m4v',
+            }),
+            'youtube_url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Optional YouTube recording link',
+            }),
+            'resource_file': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
             }),
             'duration_minutes': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -86,10 +93,24 @@ class LessonRecordingForm(forms.ModelForm):
 
     def clean_video(self):
         video = self.cleaned_data['video']
+        if not video:
+            return video
         max_size = 1024 * 1024 * 1024
         if video.size > max_size:
             raise forms.ValidationError('Video files must be 1 GB or smaller.')
         return video
+
+    def clean_resource_file(self):
+        resource_file = self.cleaned_data['resource_file']
+        if resource_file and resource_file.size > 50 * 1024 * 1024:
+            raise forms.ValidationError('Session resources must be 50 MB or smaller.')
+        return resource_file
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('video') and not cleaned_data.get('youtube_url'):
+            raise forms.ValidationError('Add an uploaded video or a YouTube recording link.')
+        return cleaned_data
 
 
 class LiveSessionForm(forms.ModelForm):
