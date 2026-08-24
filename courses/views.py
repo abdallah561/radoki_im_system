@@ -1479,7 +1479,11 @@ def add_lesson_video_link(request, lesson_id):
     if not (request.user.is_staff or lesson.module.course.instructor == request.user):
         raise PermissionDenied('Only the course instructor or an administrator can add video links.')
     if request.method == 'POST':
-        form = LessonVideoLinkForm(request.POST)
+        link_data = request.POST.copy()
+        if request.POST.get('video_link_title') is not None:
+            link_data['title'] = request.POST.get('video_link_title', '')
+            link_data['youtube_url'] = request.POST.get('video_link_url', '')
+        form = LessonVideoLinkForm(link_data)
         if form.is_valid():
             video_link = form.save(commit=False)
             video_link.lesson = lesson
@@ -1510,7 +1514,12 @@ def add_lesson_additional_resource(request, lesson_id):
     if not (request.user.is_staff or lesson.module.course.instructor == request.user):
         raise PermissionDenied('Only the course instructor or an administrator can add resources.')
     if request.method == 'POST':
-        form = LessonAdditionalResourceForm(request.POST, request.FILES)
+        resource_data = request.POST.copy()
+        resource_files = request.FILES.copy()
+        if request.POST.get('additional_resource_title') is not None:
+            resource_data['title'] = request.POST.get('additional_resource_title', '')
+            resource_files['file'] = request.FILES.get('additional_resource_file')
+        form = LessonAdditionalResourceForm(resource_data, resource_files)
         if form.is_valid():
             resource = form.save(commit=False)
             resource.lesson = lesson

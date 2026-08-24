@@ -173,16 +173,17 @@
               <div class="lesson-extra-list">
                 <div class="session-materials-heading"><i class="fab fa-youtube me-1" style="color:#e74c3c;"></i>Additional YouTube videos</div>
                 {% for link in video_links %}
-                <div class="lesson-extra-item"><span>{{ link.title }}</span><form method="post" action="{% url 'courses:delete_lesson_video_link' link.pk %}">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm p-0" title="Remove video"><i class="fas fa-times"></i></button></form></div>
+                <div class="mb-3 p-2" style="background:#fff;border:1px solid #fde9e7;border-radius:8px;">
+                  {% if link.get_embed_url %}<div class="ratio ratio-16x9 mb-2"><iframe src="{{ link.get_embed_url }}" title="{{ link.title }}" allowfullscreen></iframe></div>{% endif %}
+                  <div class="lesson-extra-item"><span><i class="fab fa-youtube me-1" style="color:#e74c3c;"></i>{{ link.title }}</span><form method="post" action="{% url 'courses:delete_lesson_video_link' link.pk %}">{% csrf_token %}<button type="submit" class="btn btn-link btn-sm p-0" title="Remove video"><i class="fas fa-times"></i></button></form></div>
+                </div>
                 {% endfor %}
               </div>
               {% endif %}
               {% if lesson and action == 'Edit' %}
               <div class="session-add-material mt-3">
                 <div class="session-add-material-label">Add another YouTube video</div>
-                <form method="post" action="{% url 'courses:add_lesson_video_link' lesson.pk %}">
-                  {% csrf_token %}<div class="row g-2"><div class="col-md-4">{{ video_link_form.title }}</div><div class="col-md-6">{{ video_link_form.youtube_url }}</div><div class="col-md-2"><button type="submit" class="btn btn-outline-danger btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
-                </form>
+                <div class="row g-2"><div class="col-md-4"><input type="text" name="video_link_title" class="form-control" placeholder="Video title"></div><div class="col-md-6"><input type="url" name="video_link_url" class="form-control" placeholder="https://youtube.com/watch?v=..."></div><div class="col-md-2"><button type="submit" formaction="{% url 'courses:add_lesson_video_link' lesson.pk %}" formmethod="post" class="btn btn-outline-danger btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
               </div>
               {% endif %}
             </div>
@@ -229,9 +230,7 @@
               {% if lesson and action == 'Edit' %}
               <div class="session-add-material mt-3">
                 <div class="session-add-material-label">Add another lesson resource</div>
-                <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_additional_resource' lesson.pk %}">
-                  {% csrf_token %}<div class="row g-2"><div class="col-md-4">{{ additional_resource_form.title }}</div><div class="col-md-6">{{ additional_resource_form.file }}</div><div class="col-md-2"><button type="submit" class="btn btn-outline-success btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
-                </form>
+                <div class="row g-2"><div class="col-md-4"><input type="text" name="additional_resource_title" class="form-control" placeholder="Resource title"></div><div class="col-md-6"><input type="file" name="additional_resource_file" class="form-control"></div><div class="col-md-2"><button type="submit" formaction="{% url 'courses:add_lesson_additional_resource' lesson.pk %}" formmethod="post" class="btn btn-outline-success btn-sm w-100"><i class="fas fa-plus me-1"></i>Add</button></div></div>
               </div>
               {% endif %}
             </div>
