@@ -52,7 +52,7 @@ PaymentMethodFormSet = modelformset_factory(
     formset=BasePaymentMethodFormSet,
 )
 
-from .models import Resource
+from .models import Resource, LessonRecording
 
 class ResourceForm(forms.ModelForm):
     class Meta:
@@ -61,6 +61,35 @@ class ResourceForm(forms.ModelForm):
         widgets = {
             'download_allowed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class LessonRecordingForm(forms.ModelForm):
+    """Form used by instructors to add a video recording to a lesson."""
+    class Meta:
+        model = LessonRecording
+        fields = ['title', 'video', 'duration_minutes', 'is_published']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Week 1 recorded session',
+            }),
+            'video': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'video/mp4,video/webm,video/quicktime,video/x-m4v',
+            }),
+            'duration_minutes': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+            }),
+            'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean_video(self):
+        video = self.cleaned_data['video']
+        max_size = 1024 * 1024 * 1024
+        if video.size > max_size:
+            raise forms.ValidationError('Video files must be 1 GB or smaller.')
+        return video
 
 
 class LiveSessionForm(forms.ModelForm):

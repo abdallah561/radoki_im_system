@@ -9,7 +9,7 @@ from django.contrib.admin import SimpleListFilter
 from datetime import timedelta
 from .models import (
     Course, Enrollment, Resource, PaymentMethod, LiveSession, Coupon,
-    Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload
+    Module, Lesson, LessonRecording, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload
 )
 from .admin_enhancements import AdminEnhancements, ApprovalStatusFilter, DateRangeFilter
 from core.admin_mixins import AdminLoggingMixin, AdminExportMixin
@@ -1334,6 +1334,14 @@ class LessonAdmin(AdminLoggingMixin, admin.ModelAdmin):
         """Display the course this lesson belongs to"""
         return obj.module.course.title
     course_link.short_description = "Course"
+
+
+@admin.register(LessonRecording)
+class LessonRecordingAdmin(AdminLoggingMixin, admin.ModelAdmin):
+    list_display = ('title', 'lesson', 'duration_minutes', 'is_published', 'uploaded_at')
+    list_filter = ('is_published', 'uploaded_at')
+    search_fields = ('title', 'lesson__title', 'lesson__module__course__title')
+    readonly_fields = ('uploaded_at',)
 
 
 # --- LESSON COMPLETION ADMIN ---

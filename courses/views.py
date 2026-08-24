@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonRecording, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
 from assignments.models import AssignmentSubmission
 from core.models import AdminAccessControl
 
@@ -43,7 +43,7 @@ def _staff_permission_denied(request, message=None):
     return None
 
 
-from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm
+from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm
 from django.utils.html import format_html
 from django.http import FileResponse, HttpResponse
 from django.urls import reverse
@@ -1525,6 +1525,8 @@ def lesson_detail(request, lesson_id):
         ).values_list('lesson_id', flat=True)
     ) if request.user.is_student() else set()
 
+    recording_form = LessonRecordingForm() if is_instructor_preview else None
+
     return render(request, 'courses/lesson_detail.html', {
         'lesson':               lesson,
         'module':               module,
@@ -1537,7 +1539,45 @@ def lesson_detail(request, lesson_id):
         'completed_ids':        completed_ids,
         'embed_url':            lesson.get_youtube_embed_url(),
         'is_instructor_preview': is_instructor_preview,
+        'recordings': lesson.recordings.all() if is_instructor_preview else lesson.recordings.filter(is_published=True),
+        'recording_form': recording_form,
     })
+
+
+@login_required
+def add_lesson_recording(request, lesson_id):
+    """Instructor: upload a recorded session for a lesson."""
+    lesson = get_object_or_404(
+        Lesson, pk=lesson_id, module__course__instructor=request.user
+    )
+    if request.method != 'POST':
+        return redirect('courses:lesson_detail', lesson_id=lesson.pk)
+
+    form = LessonRecordingForm(request.POST, request.FILES)
+    if form.is_valid():
+        recording = form.save(commit=False)
+        recording.lesson = lesson
+        recording.save()
+        messages.success(request, f'Recording "{recording.title}" uploaded.')
+    else:
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                messages.error(request, error)
+    return redirect('courses:lesson_detail', lesson_id=lesson.pk)
+
+
+@login_required
+def delete_lesson_recording(request, recording_id):
+    """Instructor: delete a recorded session."""
+    recording = get_object_or_404(
+        LessonRecording, pk=recording_id, lesson__module__course__instructor=request.user
+    )
+    lesson_id = recording.lesson_id
+    if request.method == 'POST':
+        recording.video.delete(save=False)
+        recording.delete()
+        messages.success(request, 'Recording deleted.')
+    return redirect('courses:lesson_detail', lesson_id=lesson_id)
 
 
 @login_required

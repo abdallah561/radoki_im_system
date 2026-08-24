@@ -216,7 +216,10 @@ STATICFILES_STORAGE = env(
 
 STORAGES = {
     'default': {
-        'BACKEND': 'core.storage.CloudflareR2Storage',
+        'BACKEND': (
+            'core.storage.CloudflareR2Storage'
+            if not DEBUG else 'django.core.files.storage.FileSystemStorage'
+        ),
     },
     'staticfiles': {
         'BACKEND': STATICFILES_STORAGE,

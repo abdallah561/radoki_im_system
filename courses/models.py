@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
 
 class Course(models.Model):
     instructor = models.ForeignKey(
@@ -500,6 +501,30 @@ class Lesson(models.Model):
     def resource_filename(self):
         import os
         return os.path.basename(self.resource_file.name) if self.resource_file else ''
+
+
+class LessonRecording(models.Model):
+    """A recorded online session available from a lesson."""
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='recordings'
+    )
+    title = models.CharField(max_length=255)
+    video = models.FileField(
+        upload_to='lessons/recordings/%Y/%m/',
+        validators=[FileExtensionValidator(allowed_extensions=['mp4', 'webm', 'mov', 'm4v'])],
+        max_length=500,
+    )
+    duration_minutes = models.PositiveIntegerField(null=True, blank=True)
+    is_published = models.BooleanField(default=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f'{self.lesson.title} - {self.title}'
 
 
 class LessonCompletion(models.Model):
