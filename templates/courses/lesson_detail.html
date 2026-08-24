@@ -278,24 +278,6 @@
             <span class="recording-duration"><i class="fas fa-clock me-1"></i>{{ recording.duration_minutes }} min</span>
             {% endif %}
           </div>
-          {% if recording.resource_file %}
-          <div class="recording-resource">
-            <i class="fas fa-paperclip"></i>
-            <span>{{ recording.resource_filename }}</span>
-            <a href="{{ recording.resource_file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary ms-auto">
-              <i class="fas fa-external-link-alt me-1"></i> Open resource
-            </a>
-          </div>
-          {% endif %}
-          {% for resource in recording.resources.all %}
-          <div class="recording-resource">
-            <i class="fas fa-file-alt"></i>
-            <span>{{ resource.title }}</span>
-            <a href="{{ resource.file.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary ms-auto">
-              <i class="fas fa-external-link-alt me-1"></i> Open resource
-            </a>
-          </div>
-          {% endfor %}
           {% if is_instructor_preview %}
           <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}" class="recording-actions">
             {% csrf_token %}
@@ -319,14 +301,12 @@
         <div class="attachment-icon"><i class="fas fa-upload"></i></div>
         <div class="recording-upload-body">
           <div class="recording-upload-title">Add a recorded session</div>
-          <div class="recording-upload-subtitle">MP4, WebM, MOV, or M4V up to 1 GB</div>
+          <div class="recording-upload-subtitle">MP4, WebM, MOV, or M4V up to 1 GB. Add YouTube links and attachments in their sections above.</div>
           <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_recording' lesson.pk %}">
             {% csrf_token %}
             <div class="row g-2">
               <div class="col-md-5">{{ recording_form.title }}</div>
               <div class="col-md-7">{{ recording_form.video }}</div>
-              <div class="col-md-6">{{ recording_form.youtube_url }}</div>
-              <div class="col-md-6">{{ recording_form.resource_file }}</div>
               <div class="col-md-4">{{ recording_form.duration_minutes }}</div>
               <div class="col-md-4 form-check mt-3 ms-2">{{ recording_form.is_published }} <label class="form-check-label">Publish now</label></div>
               <div class="col-12"><button type="submit" class="btn btn-primary btn-sm px-3"><i class="fas fa-upload me-1"></i> Upload recording</button></div>
