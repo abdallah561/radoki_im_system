@@ -1452,6 +1452,8 @@ def edit_lesson(request, lesson_id):
     return render(request, 'courses/lesson_form.html', {
         'lesson': lesson, 'module': module,
         'course': module.course, 'action': 'Edit',
+        'recordings': lesson.recordings.all(),
+        'recording_form': LessonRecordingForm(),
     })
 
 

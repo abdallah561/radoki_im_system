@@ -191,6 +191,57 @@
         </div>
       </div>
 
+      {% if lesson and action == 'Edit' %}
+      <div class="card border-0 shadow-sm mt-4" style="border-radius:14px; overflow:hidden;">
+        <div class="card-header border-0 py-3 px-4" style="background:#1f2933;">
+          <h5 class="mb-0 text-white fw-semibold"><i class="fas fa-video me-2"></i>Recorded Sessions</h5>
+        </div>
+        <div class="card-body p-4">
+          {% for recording in recordings %}
+          <div class="d-flex align-items-center justify-content-between gap-3 border-bottom py-2">
+            <div>
+              <div class="fw-semibold">{{ recording.title }}</div>
+              <small class="text-muted">{{ recording.video.name }}{% if not recording.is_published %} · Hidden{% endif %}</small>
+            </div>
+            <form method="post" action="{% url 'courses:delete_lesson_recording' recording.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this recording?');">
+                <i class="fas fa-trash me-1"></i> Delete
+              </button>
+            </form>
+          </div>
+          {% empty %}
+          <p class="text-muted mb-3">No recorded sessions uploaded yet.</p>
+          {% endfor %}
+
+          <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_recording' lesson.pk %}" class="mt-3">
+            {% csrf_token %}
+            <div class="row g-3 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label fw-semibold">Recording title</label>
+                {{ recording_form.title }}
+              </div>
+              <div class="col-md-7">
+                <label class="form-label fw-semibold">Video file</label>
+                {{ recording_form.video }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Duration (minutes)</label>
+                {{ recording_form.duration_minutes }}
+              </div>
+              <div class="col-md-4 form-check ms-2 mb-2">
+                {{ recording_form.is_published }}
+                <label class="form-check-label">Publish for students</label>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i> Upload recording</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
 
