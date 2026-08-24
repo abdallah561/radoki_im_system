@@ -17,8 +17,29 @@
 .session-material { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 0; border-top:1px solid #edf2f7; font-size:.78rem; }
 .session-material:first-of-type { border-top:0; }
 .session-material a { color:#e74c3c; flex-shrink:0; }
+.session-material > span { min-width:0; overflow-wrap:anywhere; }
 .session-add-material { padding-top:13px; border-top:1px dashed #c9e4f7; }
 .session-add-material-label { color:#5d6d7e; font-size:.75rem; font-weight:700; margin-bottom:7px; }
+@media(max-width:575.98px){
+  .container-fluid.py-4 { padding:16px 10px !important; }
+  .container-fluid .card-body { padding:18px !important; }
+  .container-fluid .card-header { padding-left:18px !important; padding-right:18px !important; }
+  .breadcrumb { overflow-wrap:anywhere; line-height:1.5; }
+  .session-editor-header { align-items:flex-start; flex-direction:column; padding:12px 14px; }
+  .session-editor-header > .d-flex { width:100%; justify-content:space-between; }
+  .session-editor-title { max-width:100%; overflow-wrap:anywhere; }
+  .session-editor-body { padding:13px 14px; }
+  .session-source-list { margin-bottom:12px; }
+  .session-material { align-items:flex-start; }
+  .session-material form { flex-shrink:0; }
+  .session-add-material form .row > [class*="col-"] { width:100%; }
+  .session-add-material form .btn { width:100%; }
+  .recording-upload { padding:13px; }
+  .recording-upload form .row > [class*="col-"] { width:100%; }
+  .recording-upload form .form-check { margin-left:0 !important; margin-top:5px !important; }
+  .recording-upload form .btn { width:100%; }
+  .d-flex.gap-3 > .btn { min-width:0; }
+}
 </style>
 <div class="container-fluid py-4" style="background:#f0f4f8; min-height:100vh;">
 
