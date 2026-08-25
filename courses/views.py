@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonVideoLink, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
 from assignments.models import AssignmentSubmission
 from core.models import AdminAccessControl
 
@@ -43,7 +43,7 @@ def _staff_permission_denied(request, message=None):
     return None
 
 
-from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm, LessonRecordingResourceForm, LessonVideoLinkForm
+from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm, LessonRecordingResourceForm
 from django.utils.html import format_html
 from django.http import FileResponse, HttpResponse
 from django.urls import reverse
@@ -1455,8 +1455,6 @@ def edit_lesson(request, lesson_id):
         'recordings': lesson.recordings.all(),
         'recording_form': LessonRecordingForm(),
         'recording_resource_form': LessonRecordingResourceForm(),
-        'video_link_form': LessonVideoLinkForm(),
-        'video_links': lesson.video_links.all(),
     })
 
 
@@ -1569,7 +1567,6 @@ def lesson_detail(request, lesson_id):
     ) if request.user.is_student() else set()
 
     recording_form = LessonRecordingForm() if is_instructor_preview else None
-    video_link_form = LessonVideoLinkForm() if is_instructor_preview else None
 
     return render(request, 'courses/lesson_detail.html', {
         'lesson':               lesson,
@@ -1585,11 +1582,9 @@ def lesson_detail(request, lesson_id):
         'is_instructor_preview': is_instructor_preview,
         'recordings': lesson.recordings.all() if is_instructor_preview else lesson.recordings.filter(is_published=True),
         'recording_form': recording_form,
-        'video_link_form': video_link_form,
         'recording_resources': {
             recording.pk: recording.resources.all() for recording in lesson.recordings.all()
         },
-        'video_links': lesson.video_links.all(),
     })
 
 
@@ -1714,7 +1709,7 @@ def log_lesson_time(request, lesson_id):
         return JsonResponse({'ok': False}, status=405)
     lesson = get_object_or_404(Lesson, pk=lesson_id, is_published=True)
     if not request.user.is_student():
-        return JsonResponse({'ok': True})  # silently ignore instructors
+        return JsonResponse({'ok': True})
     try:
         seconds = int(request.POST.get('seconds', 0))
     except (ValueError, TypeError):
@@ -1725,9 +1720,6 @@ def log_lesson_time(request, lesson_id):
     lp.time_spent_seconds += seconds
     lp.save()
     return JsonResponse({'ok': True, 'total_seconds': lp.time_spent_seconds})
-
-
-# ─── Student course progress ──────────────────────────────────────────────────
 
 @login_required
 def course_progress(request, course_id):

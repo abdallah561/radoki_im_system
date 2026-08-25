@@ -52,7 +52,7 @@ PaymentMethodFormSet = modelformset_factory(
     formset=BasePaymentMethodFormSet,
 )
 
-from .models import Resource, LessonRecording, LessonRecordingResource, LessonVideoLink
+from .models import Resource, LessonRecording, LessonRecordingResource
 
 class ResourceForm(forms.ModelForm):
     class Meta:
@@ -61,22 +61,6 @@ class ResourceForm(forms.ModelForm):
         widgets = {
             'download_allowed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
-
-class LessonVideoLinkForm(forms.ModelForm):
-    class Meta:
-        model = LessonVideoLink
-        fields = ['title', 'youtube_url']
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Video title'}),
-            'youtube_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://youtube.com/watch?v=...'}),
-        }
-
-    def clean_youtube_url(self):
-        value = self.cleaned_data['youtube_url']
-        if 'youtube.com/' not in value and 'youtu.be/' not in value:
-            raise forms.ValidationError('Enter a valid YouTube link.')
-        return value
 
 
 class LessonRecordingForm(forms.ModelForm):
