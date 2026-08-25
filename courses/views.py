@@ -1514,21 +1514,26 @@ def add_lesson_additional_resource(request, lesson_id):
     if not (request.user.is_staff or lesson.module.course.instructor == request.user):
         raise PermissionDenied('Only the course instructor or an administrator can add resources.')
     if request.method == 'POST':
-        resource_data = request.POST.copy()
-        resource_files = request.FILES.copy()
-        if request.POST.get('additional_resource_title') is not None:
-            resource_data['title'] = request.POST.get('additional_resource_title', '')
-            resource_files['file'] = request.FILES.get('additional_resource_file')
-        form = LessonAdditionalResourceForm(resource_data, resource_files)
-        if form.is_valid():
-            resource = form.save(commit=False)
-            resource.lesson = lesson
-            resource.save()
-            messages.success(request, f'Resource "{resource.title}" added.')
-        else:
-            for field_errors in form.errors.values():
-                for error in field_errors:
-                    messages.error(request, error)
+        resource_files = request.FILES.getlist('additional_resource_files')
+        if not resource_files and request.FILES.get('additional_resource_file'):
+            resource_files = [request.FILES['additional_resource_file']]
+        added = 0
+        for uploaded_file in resource_files:
+            form = LessonAdditionalResourceForm(
+                data={'title': uploaded_file.name},
+                files={'file': uploaded_file},
+            )
+            if form.is_valid():
+                resource = form.save(commit=False)
+                resource.lesson = lesson
+                resource.save()
+                added += 1
+            else:
+                for field_errors in form.errors.values():
+                    for error in field_errors:
+                        messages.error(request, f'{uploaded_file.name}: {error}')
+        if added:
+            messages.success(request, f'{added} additional resource(s) added.')
     return redirect('courses:edit_lesson', lesson_id=lesson.pk)
 
 
