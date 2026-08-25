@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied # Correct import location
 from django.db.models import Q, Sum, Count, Max
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonVideoLink, LessonAdditionalResource, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
+from .models import Course, Enrollment, PaymentMethod, Resource, Module, Lesson, LessonVideoLink, LessonRecording, LessonRecordingResource, LessonCompletion, LessonProgress, ResourceDownload, LessonResourceDownload, LiveSession, Coupon
 from assignments.models import AssignmentSubmission
 from core.models import AdminAccessControl
 
@@ -43,7 +43,7 @@ def _staff_permission_denied(request, message=None):
     return None
 
 
-from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm, LessonRecordingResourceForm, LessonVideoLinkForm, LessonAdditionalResourceForm
+from .forms import CourseForm, ResourceForm, PaymentMethodFormSet, LiveSessionForm, CouponForm, LessonRecordingForm, LessonRecordingResourceForm, LessonVideoLinkForm
 from django.utils.html import format_html
 from django.http import FileResponse, HttpResponse
 from django.urls import reverse
@@ -1456,9 +1456,7 @@ def edit_lesson(request, lesson_id):
         'recording_form': LessonRecordingForm(),
         'recording_resource_form': LessonRecordingResourceForm(),
         'video_link_form': LessonVideoLinkForm(),
-        'additional_resource_form': LessonAdditionalResourceForm(),
         'video_links': lesson.video_links.all(),
-        'additional_resources': lesson.additional_resources.all(),
     })
 
 
@@ -1505,48 +1503,6 @@ def delete_lesson_video_link(request, link_id):
     if request.method == 'POST':
         video_link.delete()
         messages.success(request, 'YouTube video removed.')
-    return redirect('courses:edit_lesson', lesson_id=lesson_id)
-
-
-@login_required
-def add_lesson_additional_resource(request, lesson_id):
-    lesson = get_object_or_404(Lesson, pk=lesson_id)
-    if not (request.user.is_staff or lesson.module.course.instructor == request.user):
-        raise PermissionDenied('Only the course instructor or an administrator can add resources.')
-    if request.method == 'POST':
-        resource_files = request.FILES.getlist('additional_resource_files')
-        if not resource_files and request.FILES.get('additional_resource_file'):
-            resource_files = [request.FILES['additional_resource_file']]
-        added = 0
-        for uploaded_file in resource_files:
-            form = LessonAdditionalResourceForm(
-                data={'title': uploaded_file.name},
-                files={'file': uploaded_file},
-            )
-            if form.is_valid():
-                resource = form.save(commit=False)
-                resource.lesson = lesson
-                resource.save()
-                added += 1
-            else:
-                for field_errors in form.errors.values():
-                    for error in field_errors:
-                        messages.error(request, f'{uploaded_file.name}: {error}')
-        if added:
-            messages.success(request, f'{added} additional resource(s) added.')
-    return redirect('courses:edit_lesson', lesson_id=lesson.pk)
-
-
-@login_required
-def delete_lesson_additional_resource(request, resource_id):
-    resource = get_object_or_404(LessonAdditionalResource, pk=resource_id)
-    if not (request.user.is_staff or resource.lesson.module.course.instructor == request.user):
-        raise PermissionDenied('Only the course instructor or an administrator can delete resources.')
-    lesson_id = resource.lesson_id
-    if request.method == 'POST':
-        resource.file.delete(save=False)
-        resource.delete()
-        messages.success(request, 'Lesson resource deleted.')
     return redirect('courses:edit_lesson', lesson_id=lesson_id)
 
 
@@ -1614,7 +1570,6 @@ def lesson_detail(request, lesson_id):
 
     recording_form = LessonRecordingForm() if is_instructor_preview else None
     video_link_form = LessonVideoLinkForm() if is_instructor_preview else None
-    additional_resource_form = LessonAdditionalResourceForm() if is_instructor_preview else None
 
     return render(request, 'courses/lesson_detail.html', {
         'lesson':               lesson,
@@ -1631,12 +1586,10 @@ def lesson_detail(request, lesson_id):
         'recordings': lesson.recordings.all() if is_instructor_preview else lesson.recordings.filter(is_published=True),
         'recording_form': recording_form,
         'video_link_form': video_link_form,
-        'additional_resource_form': additional_resource_form,
         'recording_resources': {
             recording.pk: recording.resources.all() for recording in lesson.recordings.all()
         },
         'video_links': lesson.video_links.all(),
-        'additional_resources': lesson.additional_resources.all(),
     })
 
 
