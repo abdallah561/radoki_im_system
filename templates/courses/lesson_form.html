@@ -20,6 +20,15 @@
 .session-material > span { min-width:0; overflow-wrap:anywhere; }
 .session-add-material { padding-top:13px; border-top:1px dashed #c9e4f7; }
 .session-add-material-label { color:#5d6d7e; font-size:.75rem; font-weight:700; margin-bottom:7px; }
+.recording-upload { display:flex; align-items:flex-start; gap:14px; padding:18px; margin-top:16px; border:1px solid #c9e4f7; border-left:4px solid #2980b9; border-radius:12px; background:linear-gradient(135deg,#f8fbff,#eef7fd); }
+.recording-upload .attachment-icon { width:44px; height:44px; background:#d6eaf8; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#1a5276; font-size:1.1rem; flex-shrink:0; }
+.recording-upload-body { flex:1; min-width:0; }
+.recording-upload-title { color:#1a5276; font-weight:700; font-size:.95rem; }
+.recording-upload-subtitle { color:#5d6d7e; font-size:.77rem; margin:3px 0 12px; }
+.recording-upload form .form-control { border-color:#c9e4f7; font-size:.84rem; }
+.session-preview { border-radius:9px; overflow:hidden; background:#102a43; margin:0 0 14px; }
+.session-preview video { display:block; width:100%; max-height:300px; }
+.session-preview iframe { display:block; width:100%; min-height:260px; border:0; }
 .lesson-extra-list { margin-top:10px; padding:10px 12px; border:1px solid #edf2f7; border-radius:10px; background:#f8fbff; }
 .lesson-extra-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid #edf2f7; font-size:.78rem; }
 .lesson-extra-item:last-child { border-bottom:0; }
@@ -282,7 +291,7 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div>
             <h4 class="mb-1" style="color:#1a5276; font-size:1.15rem;"><i class="fas fa-video me-2"></i>Recorded Sessions</h4>
-            <p class="text-muted mb-0" style="font-size:.78rem;">Add one or more video sources and materials to this lesson.</p>
+            <p class="text-muted mb-0" style="font-size:.78rem;">Upload recordings of your live lessons for students to watch later.</p>
           </div>
           <span class="badge rounded-pill" style="background:#eaf4fd;color:#2980b9;">{{ recordings|length }} sessions</span>
         </div>
@@ -299,8 +308,19 @@
             </div>
           </div>
           <div class="session-editor-body">
+            {% if recording.video %}
+            <div class="session-preview">
+              <video controls preload="metadata">
+                <source src="{{ recording.video.url }}">
+                Your browser does not support video playback.
+              </video>
+            </div>
+            {% elif recording.get_youtube_embed_url %}
+            <div class="session-preview"><iframe src="{{ recording.get_youtube_embed_url }}" title="{{ recording.title }}" allowfullscreen></iframe></div>
+            {% endif %}
             <div class="session-source-list">
               {% if recording.video %}<span class="session-source"><i class="fas fa-file-video"></i> Uploaded video</span>{% endif %}
+              {% if recording.youtube_url %}<span class="session-source youtube"><i class="fab fa-youtube"></i> YouTube video</span>{% endif %}
               {% if recording.duration_minutes %}<span class="session-source"><i class="fas fa-clock"></i> {{ recording.duration_minutes }} min</span>{% endif %}
             </div>
           </div>
@@ -313,13 +333,13 @@
           <div class="attachment-icon"><i class="fas fa-plus"></i></div>
           <div class="recording-upload-body">
             <div class="recording-upload-title">Add another recorded session</div>
-            <div class="recording-upload-subtitle">Add the recorded video file for this lesson. YouTube links and attachments are managed in their original sections above.</div>
+            <div class="recording-upload-subtitle">Add a recorded video from an online lesson. Students will find published recordings on the lesson page.</div>
             <form method="post" enctype="multipart/form-data" action="{% url 'courses:add_lesson_recording' lesson.pk %}">
               {% csrf_token %}
               <div class="row g-2">
-                <div class="col-md-5">{{ recording_form.title }}</div>
-                <div class="col-md-7">{{ recording_form.video }}</div>
-                <div class="col-md-4">{{ recording_form.duration_minutes }}</div>
+                <div class="col-md-5"><label class="form-label fw-semibold">Session title</label>{{ recording_form.title }}</div>
+                <div class="col-md-7"><label class="form-label fw-semibold">Recorded video</label>{{ recording_form.video }}</div>
+                <div class="col-md-4"><label class="form-label fw-semibold">Duration (minutes)</label>{{ recording_form.duration_minutes }}</div>
                 <div class="col-md-4 form-check mt-3 ms-2">{{ recording_form.is_published }} <label class="form-check-label">Publish for students</label></div>
                 <div class="col-12"><button type="submit" class="btn btn-primary btn-sm px-3"><i class="fas fa-upload me-1"></i>Add session</button></div>
               </div>
